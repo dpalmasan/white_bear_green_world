@@ -19,6 +19,7 @@
 #include "TileMap.h"
 #include "WorldMap.h"
 #include "core/Camera.h"
+#include "core/Input.h"
 #include "entities/Arachnoid.h"
 #include "entities/Boss.h"
 #include "entities/Enemy.h"
@@ -37,11 +38,8 @@ class Game
    public:
     // Game running state.
     bool running = true;
-    // Tracks whether attack key is currently held to gate repeat attacks.
-    bool attackButtonHeld = false;
     // Pause state.
-    bool paused        = false;
-    bool escapeKeyHeld = false;  // Track escape key state to prevent toggle spam
+    bool paused = false;
 
     // SDL rendering objects.
     SDL_Window* window     = nullptr;
@@ -70,6 +68,7 @@ class Game
     TileMap map;                                  // The tilemap for collision and rendering.
     PolarBear polarBear;                          // The player character.
     Camera camera;                                // Camera for tracking the player.
+    Input input;                                  // Centralized input handling
     std::vector<std::unique_ptr<Enemy>> enemies;  // List of active enemies.
 
     std::vector<Explosion> explosions;  // Active explosion effects.

@@ -404,71 +404,56 @@ void Game::loadAssets()
 }
 
 // Processes keyboard input and updates player control state.
+// Processes keyboard input and updates player control state.
 void Game::handleInput()
 {
-    SDL_Event e;
-    while (SDL_PollEvent(&e))
-    {
-        if (e.type == SDL_QUIT)
-            running = false;
-        if (config.showWorldMap)
-        {
-            worldMap.handleEvent(e);
-            if (e.type == SDL_KEYDOWN)
-            {
-                const SDL_Keycode key = e.key.keysym.sym;
-                if (key == SDLK_RETURN || key == SDLK_j)
-                {
-                    // If currently on Snowy Cliffs, start that stage
-                    if (worldMap.currentIndex >= 0 &&
-                        worldMap.currentIndex < (int)worldMap.locations.size())
-                    {
-                        const auto &loc = worldMap.locations[worldMap.currentIndex];
-                        if (loc.name == "Snowy Cliffs")
-                        {
-                            // Begin fade-out transition; actual load happens after fade completes
-                            wmFadingOut = true;
-                            wmFadingIn  = false;
-                            wmFadeTimer = 0.0f;
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // Set world map mode for input manager
+    input.setWorldMapActive(config.showWorldMap);
+    
+    // Handle all SDL events and keyboard state
+    input.handleEvents(running);
 
     if (config.showWorldMap)
     {
-        // Ignore gameplay inputs while in world map mode
-        return;
-    }
-
-    // Disable input while boss intro plays
-    if (boss && boss->isIntroActive())
-    {
+        // Handle world map selection input
+        if (input.isSelectPressed())
+        {
+            if (worldMap.currentIndex >= 0 &&
+                worldMap.currentIndex < (int)worldMap.locations.size())
+            {
+                const auto &loc = worldMap.locations[worldMap.currentIndex];
+                if (loc.name == "Snowy Cliffs")
+                {
+                    // Begin fade-out transition; actual load happens after fade completes
+                    wmFadingOut = true;
+                    wmFadingIn  = false;
+                    wmFadeTimer = 0.0f;
+                }
+            }
+        }
+        // Reset frame events and return
+        input.resetFrameEvents();
         return;
     }
 
     // Disable input during boss intro or while boss explicitly disables inputs
     if (boss && (boss->isIntroActive() || boss->shouldDisableInputs()))
     {
+        input.resetFrameEvents();
         return;
     }
 
     // Disable all inputs during power-up pickup sequence
     if (pauseForPickup)
     {
+        input.resetFrameEvents();
         return;
     }
-
-    const Uint8 *keystate = SDL_GetKeyboardState(NULL);
-    float speed           = 75.0f;  // Reduced walking speed (half)
 
     // Disable all input (movement and attack) during knockback
     if (polarBear.isKnockedBack)
     {
-        // During knockback, maintain knockback velocity but don't allow any input
-        // vx is already set by takeDamage knockback, preserve it - don't reset to 0
+        input.resetFrameEvents();
         return;
     }
 
@@ -476,22 +461,20 @@ void Game::handleInput()
     polarBear.moveIntent  = 0.0f;
     polarBear.climbIntent = 0.0f;
 
-    // Left movement (A key).
-    if (keystate[SDL_SCANCODE_A])
+    // Left movement (A key)
+    if (input.isMovingLeft())
     {
         polarBear.moveIntent = -1.0f;
-        // Only update facing if not currently attacking to maintain facing during attack.
         if (!polarBear.isAttacking)
         {
             polarBear.facingRight = false;
         }
     }
 
-    // Right movement (D key).
-    if (keystate[SDL_SCANCODE_D])
+    // Right movement (D key)
+    if (input.isMovingRight())
     {
         polarBear.moveIntent = 1.0f;
-        // Only update facing if not currently attacking.
         if (!polarBear.isAttacking)
         {
             polarBear.facingRight = true;
@@ -505,10 +488,9 @@ void Game::handleInput()
         float topY   = polarBear.y + 4.0f;
         float midY   = polarBear.y + polarBear.spriteHeight / 2.0f;
         float botY   = polarBear.y + polarBear.spriteHeight - 4.0f;
-        float leftX  = polarBear.x - 1.0f;                       // sample just outside left edge
-        float rightX = polarBear.x + polarBear.spriteWidth + 1;  // just outside right edge
+        float leftX  = polarBear.x - 1.0f;
+        float rightX = polarBear.x + polarBear.spriteWidth + 1;
 
-        // Check contact with climbable tiles along left or right side (top/mid/bottom)
         bool leftAdjAny = map.isClimbableAtWorld(leftX, topY) ||
                           map.isClimbableAtWorld(leftX, midY) ||
                           map.isClimbableAtWorld(leftX, botY);
@@ -519,29 +501,25 @@ void Game::handleInput()
 
         if (adjacentClimbable)
         {
-            // Determine wall side for latching/animation using any contact on that side
             if (!polarBear.isClimbing)
             {
                 if (rightAdjAny && !leftAdjAny)
                     polarBear.climbOnRightWall = true;
                 else if (leftAdjAny && !rightAdjAny)
                     polarBear.climbOnRightWall = false;
-                // If both sides or ambiguous, keep prior side to avoid flicker
             }
-            if (keystate[SDL_SCANCODE_W])
+            if (input.isClimbingUp())
                 polarBear.climbIntent = -1.0f;
-            else if (keystate[SDL_SCANCODE_S])
+            else if (input.isClimbingDown())
                 polarBear.climbIntent = 1.0f;
             else
                 polarBear.climbIntent = 0.0f;
 
-            // Latch climbing when adjacent; allow staying in place without input
             if (!polarBear.isClimbing)
                 polarBear.isClimbing = (polarBear.climbIntent != 0.0f);
             else
-                polarBear.isClimbing = true;  // remain latched while adjacent
+                polarBear.isClimbing = true;
 
-            // Face toward the wall while climbing
             polarBear.facingRight = polarBear.climbOnRightWall;
         }
         else
@@ -552,10 +530,7 @@ void Game::handleInput()
     }
 
     // Jump (J key)
-    // - If on ground: normal jump.
-    // - If climbing: release and fall.
-    bool jDown = keystate[SDL_SCANCODE_J];
-    if (jDown)
+    if (input.isJumping())
     {
         if (polarBear.onGround)
         {
@@ -564,53 +539,40 @@ void Game::handleInput()
         }
         else if (polarBear.isClimbing)
         {
-            // Release from climb and begin falling
             polarBear.isClimbing  = false;
             polarBear.climbIntent = 0.0f;
-            // small downward nudge to ensure falling starts
             if (polarBear.vy < 40.0f)
                 polarBear.vy = 40.0f;
         }
     }
 
-    // Attack (K key) - fire once per key press, require release before next.
-    bool attackDown = keystate[SDL_SCANCODE_K];
-    if (attackDown && !attackButtonHeld)
+    // Attack (K key)
+    if (input.isAttacking())
     {
         polarBear.startAttack();
         bossSlashHit = false;  // Reset boss hit flag for new slash
         if (slashSound)
             Mix_PlayChannel(-1, slashSound, 0);
-        attackButtonHeld = true;
-    }
-    else if (!attackDown && attackButtonHeld)
-    {
-        polarBear.onAttackRelease();
-        attackButtonHeld = false;
     }
 
     // Pause (ESC key) - toggle pause state (disabled during ending scene)
-    bool escapeDown = keystate[SDL_SCANCODE_ESCAPE];
-    if (!endingStage && escapeDown && !escapeKeyHeld)
+    if (input.isPausePressed() && !endingStage)
     {
         paused = !paused;
         if (paused)
         {
-            // Lower music volume
             Mix_VolumeMusic(config.pauseMusicVolume);
         }
         else
         {
-            // Restore music volume
             Mix_VolumeMusic(config.musicVolume);
         }
-        escapeKeyHeld = true;
     }
-    else if (!escapeDown && escapeKeyHeld)
-    {
-        escapeKeyHeld = false;
-    }
+
+    // Reset single-frame events
+    input.resetFrameEvents();
 }
+
 
 // Updates game state: player physics, enemy behavior, collisions, and effects.
 void Game::update(float dt)
