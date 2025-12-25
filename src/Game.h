@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "Config.h"
+#include "Cutscene.h"
 #include "Explosion.h"
 #include "TileMap.h"
 #include "TitleScreen.h"
@@ -111,9 +112,14 @@ class Game
     SDL_Texture* endSceneTexture        = nullptr;  // End scene overlay
     Mix_Music* endSceneMusic            = nullptr;  // Scene music at end of area
 
-    // Title screen
+    // Intro and title screen
+    Cutscene introCutscene;
     TitleScreen titleScreen;
-    bool showTitleScreen = true;  // Start with title screen
+    bool showIntroCutscene     = true;   // Start with intro sequence
+    bool showTitleScreen       = false;  // Show after intro completes
+    bool inCutsceneToTitleFade = false;  // Transitioning with fade to black
+    float fadeToBlackTimer     = 0.0f;
+    float fadeToBlackDuration  = 1.0f;   // 1 second fade to black
 
     // Boss management (using interface pattern)
     std::unique_ptr<Boss> boss;     // Current boss instance

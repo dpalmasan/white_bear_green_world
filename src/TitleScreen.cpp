@@ -57,6 +57,17 @@ bool TitleScreen::load(SDL_Renderer* renderer, const std::string& assetPath)
 void TitleScreen::update(float dt)
 {
     elapsedTime += dt;
+
+    // Handle fade-in
+    if (!fadedIn)
+    {
+        alpha = elapsedTime / FADE_IN_DURATION;
+        if (alpha >= 1.0f)
+        {
+            alpha   = 1.0f;
+            fadedIn = true;
+        }
+    }
 }
 
 void TitleScreen::render(SDL_Renderer* renderer)
@@ -64,10 +75,12 @@ void TitleScreen::render(SDL_Renderer* renderer)
     if (!backgroundTexture)
         return;
 
-    // Draw background to fill screen
+    // Draw background to fill screen with fade effect
+    SDL_SetTextureAlphaMod(backgroundTexture, (Uint8)(alpha * 255));
     SDL_RenderCopy(renderer, backgroundTexture, nullptr, nullptr);
+    SDL_SetTextureAlphaMod(backgroundTexture, 255);  // Reset alpha
 
-    // Draw title letters at top-center with 70% opacity
+    // Draw title letters at top-left area with fade effect
     if (titleLettersTexture)
     {
         int winWidth  = 0;
@@ -88,10 +101,10 @@ void TitleScreen::render(SDL_Renderer* renderer)
 
         SDL_Rect destRect = {destX, destY, displayWidth, displayHeight};
 
-        // Set 70% opacity (255 * 0.7 ≈ 179)
-        SDL_SetTextureAlphaMod(titleLettersTexture, 179);
+        // Set alpha for fade effect with 70% opacity (179 * fade_alpha)
+        SDL_SetTextureAlphaMod(titleLettersTexture, (Uint8)(alpha * 179));
         SDL_RenderCopy(renderer, titleLettersTexture, nullptr, &destRect);
-        SDL_SetTextureAlphaMod(titleLettersTexture, 255);  // Reset to full opacity
+        SDL_SetTextureAlphaMod(titleLettersTexture, 255);  // Reset alpha
     }
 }
 
@@ -102,13 +115,31 @@ void TitleScreen::start()
         Mix_PlayMusic(titleMusic, -1);  // Loop the title music
         musicStarted = true;
     }
+    // Don't reset fade-in here if music is already playing (continuing from cutscene)
+    // Only reset elapsedTime if we're truly starting fresh
+    if (!musicStarted || elapsedTime == 0.0f)
+    {
+        elapsedTime = 0.0f;
+        alpha       = 0.0f;
+        fadedIn     = false;
+    }
 }
 
 void TitleScreen::reset()
 {
     elapsedTime   = 0.0f;
+    alpha         = 0.0f;
+    fadedIn       = false;
     startGame     = false;
     musicStarted  = false;
     if (titleMusic)
         Mix_HaltMusic();
+}
+
+void TitleScreen::resetFadeIn()
+{
+    elapsedTime = 0.0f;
+    alpha       = 0.0f;
+    fadedIn     = false;
+    // Keeps music playing if already started
 }

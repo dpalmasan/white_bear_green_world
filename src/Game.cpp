@@ -76,13 +76,20 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
+    // Load intro cutscene assets (6 scenes from images/introduction/)
+    if (!introCutscene.load(renderer, config.assetPath + "images/introduction/", 6,
+                            config.assetPath + "music/title_screen.ogg", true))
+    {
+        std::cerr << "Failed to load intro cutscene assets from '" << config.assetPath << "'\n";
+    }
+    introCutscene.start();
+
     // Load title screen assets
     if (!titleScreen.load(renderer, config.assetPath))
     {
         std::cerr << "Failed to load title screen assets (title-screen.png, title_screen.ogg) from '"
                   << config.assetPath << "'\n";
     }
-    titleScreen.start();
 
     // If starting on world map, load only world map assets and return
     if (config.showWorldMap)
@@ -417,6 +424,24 @@ void Game::handleInput()
     // Set world map mode for input manager
     input.setWorldMapActive(config.showWorldMap);
     
+    // Handle intro cutscene input (skip on 'j' if skippable)
+    if (showIntroCutscene)
+    {
+        input.handleEvents(running);
+        
+        // Skip cutscene if it's skippable and 'j' key pressed
+        if (introCutscene.canBeSkipped() && input.isJumping())
+        {
+            showIntroCutscene = false;
+            showTitleScreen = true;
+            introCutscene.reset();
+            titleScreen.resetFadeIn();  // Start fade-in from black
+        }
+        
+        input.resetFrameEvents();
+        return;
+    }
+    
     // Handle title screen input
     if (showTitleScreen)
     {
@@ -601,6 +626,32 @@ void Game::handleInput()
 // Updates game state: player physics, enemy behavior, collisions, and effects.
 void Game::update(float dt)
 {
+    // Update intro cutscene
+    if (showIntroCutscene)
+    {
+        introCutscene.update(dt);
+        if (introCutscene.isComplete())
+        {
+            showIntroCutscene = false;
+            inCutsceneToTitleFade = true;
+            fadeToBlackTimer = 0.0f;
+        }
+        return;
+    }
+
+    // Handle fade to black transition between cutscene and title
+    if (inCutsceneToTitleFade)
+    {
+        fadeToBlackTimer += dt;
+        if (fadeToBlackTimer >= fadeToBlackDuration)
+        {
+            inCutsceneToTitleFade = false;
+            showTitleScreen = true;
+            titleScreen.resetFadeIn();  // Start fade-in from black
+        }
+        return;
+    }
+
     // Skip game updates while on title screen
     if (showTitleScreen)
     {
@@ -1185,6 +1236,23 @@ void Game::render()
     // Clear the screen with a dark blue background.
     SDL_SetRenderDrawColor(renderer, 50, 50, 100, 255);
     SDL_RenderClear(renderer);
+
+    // Render intro cutscene if active
+    if (showIntroCutscene)
+    {
+        introCutscene.render(renderer);
+        SDL_RenderPresent(renderer);
+        return;
+    }
+
+    // Render fade to black transition
+    if (inCutsceneToTitleFade)
+    {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        SDL_RenderPresent(renderer);
+        return;
+    }
 
     // Render title screen if active
     if (showTitleScreen)

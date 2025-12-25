@@ -30,12 +30,19 @@ class TitleScreen
     // Reset the title screen state
     void reset();
 
+    // Reset fade-in state (for transitioning from cutscene)
+    void resetFadeIn();
+
    private:
     SDL_Texture* backgroundTexture = nullptr;
     SDL_Texture* titleLettersTexture = nullptr;
     Mix_Music* titleMusic          = nullptr;
 
     float elapsedTime = 0.0f;
+    float alpha       = 0.0f;
     bool startGame    = false;
     bool musicStarted = false;
+    bool fadedIn      = false;
+
+    static constexpr float FADE_IN_DURATION = 3.0f;  // 3 seconds fade-in
 };
