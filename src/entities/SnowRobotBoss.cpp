@@ -56,9 +56,9 @@ void SnowRobotBoss::loadAssets(SDL_Renderer* renderer, const std::string& assetP
     if (!fireballTexture)
         std::cerr << "Failed to load robo-cannon.png: " << IMG_GetError() << "\n";
 
-    explosionSound = Mix_LoadWAV((assetPath + "sfx/explosion.ogg").c_str());
+    explosionSound = Mix_LoadWAV((assetPath + "sfx/explosion.wav").c_str());
     if (!explosionSound)
-        std::cerr << "Failed to load explosion.ogg: " << Mix_GetError() << "\n";
+        std::cerr << "Failed to load explosion.wav: " << Mix_GetError() << "\n";
 
     laserSound = Mix_LoadWAV((assetPath + "sfx/laser.wav").c_str());
     if (!laserSound)
@@ -68,9 +68,9 @@ void SnowRobotBoss::loadAssets(SDL_Renderer* renderer, const std::string& assetP
     if (!metalClashSound)
         std::cerr << "Failed to load metal_clash.wav: " << Mix_GetError() << "\n";
 
-    // Jet propulsion sound (Opus format not supported by SDL_mixer, silently skip)
-    jetSound = Mix_LoadWAV((assetPath + "sfx/jet_propulsion.mp3").c_str());
-    // Don't error - this sound is optional and file is in unsupported Opus format
+    // Jet propulsion sound
+    jetSound = Mix_LoadWAV((assetPath + "sfx/jet_propulsion.wav").c_str());
+    // Don't error - this sound is optional
 }
 
 void SnowRobotBoss::setPosition(float x, float y)

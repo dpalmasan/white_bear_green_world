@@ -149,12 +149,12 @@ void Game::loadAssets()
         std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError() << "\n";
 
     // Load sound effects
-    slashSound = Mix_LoadWAV((config.assetPath + "sfx/slash.ogg").c_str());
+    slashSound = Mix_LoadWAV((config.assetPath + "sfx/slash.wav").c_str());
     if (!slashSound)
-        std::cerr << "Failed to load slash.ogg: " << Mix_GetError() << "\n";
-    explosionSound = Mix_LoadWAV((config.assetPath + "sfx/explosion.ogg").c_str());
+        std::cerr << "Failed to load slash.wav: " << Mix_GetError() << "\n";
+    explosionSound = Mix_LoadWAV((config.assetPath + "sfx/explosion.wav").c_str());
     if (!explosionSound)
-        std::cerr << "Failed to load explosion.ogg: " << Mix_GetError() << "\n";
+        std::cerr << "Failed to load explosion.wav: " << Mix_GetError() << "\n";
 
     // Apply zoom by scaling the renderer; camera view is window size divided by zoom
     SDL_RenderSetScale(renderer, cameraZoom, cameraZoom);
