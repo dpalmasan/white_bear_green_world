@@ -19,18 +19,14 @@ struct Fireball;
 struct Camera;
 struct Explosion;
 
-// Boss state enumeration
+// General boss state enumeration - shared by all boss types
 enum BossState
 {
-    BossIdle         = 0,
-    BossDecision     = 1,
-    BossAttack       = 2,
-    BossDashPrep     = 3,
-    BossDashMove     = 4,
-    BossVulnerable   = 5,
-    BossDying        = 6,
-    BossDisappearing = 7,
-    BossDead         = 8
+    BossIntro        = 0,
+    BossActive       = 1,
+    BossDying        = 2,
+    BossDisappearing = 3,
+    BossDead         = 4
 };
 
 // Abstract base class for all boss enemies
@@ -40,10 +36,9 @@ class Boss
     virtual ~Boss() = default;
 
     // Core boss lifecycle methods
-    virtual void loadAssets(SDL_Renderer* renderer, const std::string& assetPath)               = 0;
-    virtual void updateAI(float dt, const TileMap& map, PolarBear& player,
-                          std::vector<Fireball>& fireballs, std::vector<Explosion>& explosions) = 0;
-    virtual void render(SDL_Renderer* renderer, const Camera& camera)                           = 0;
+    virtual void loadAssets(SDL_Renderer* renderer, const std::string& assetPath)     = 0;
+    virtual void updateAI(float dt, const TileMap& map, PolarBear& player)             = 0;
+    virtual void render(SDL_Renderer* renderer, const Camera& camera)                  = 0;
 
     // Boss interaction methods
     virtual void takeDamage(int amount)                    = 0;

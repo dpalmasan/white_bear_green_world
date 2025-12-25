@@ -836,7 +836,19 @@ void Game::update(float dt)
     if (boss && boss->isIntroDone())
     {
         // Update boss AI (handles all state logic internally)
-        boss->updateAI(dt, map, polarBear, fireballs, explosions);
+        boss->updateAI(dt, map, polarBear);
+
+        // Spawn any projectiles created by the boss during updateAI
+        // Cast to SnowRobotBoss to access spawn methods (in future, could be virtual in Boss interface)
+        if (dynamic_cast<SnowRobotBoss*>(boss.get()))
+        {
+            SnowRobotBoss* snowBoss = dynamic_cast<SnowRobotBoss*>(boss.get());
+            if (snowBoss)
+            {
+                snowBoss->spawnProjectiles(fireballs);
+                snowBoss->spawnExplosions(explosions);
+            }
+        }
 
         // Check if boss requested music stop (when taking last hit)
         if (boss->shouldStopMusic() && bossMusicStarted)

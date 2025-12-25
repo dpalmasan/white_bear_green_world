@@ -14,6 +14,17 @@
 // Forward declare Explosion (defined in Game.h)
 struct Explosion;
 
+// Snow robot-specific attack state machine (internal to this boss)
+enum SnowRobotBossPhase
+{
+    SnowPhaseIdle        = 0,
+    SnowPhaseDecision    = 1,
+    SnowPhaseAttack      = 2,
+    SnowPhaseDashPrep    = 3,
+    SnowPhaseDashMove    = 4,
+    SnowPhaseVulnerable  = 5
+};
+
 class SnowRobotBoss : public Boss
 {
    public:
@@ -22,9 +33,12 @@ class SnowRobotBoss : public Boss
 
     // Boss interface implementation
     void loadAssets(SDL_Renderer* renderer, const std::string& assetPath) override;
-    void updateAI(float dt, const TileMap& map, PolarBear& player, std::vector<Fireball>& fireballs,
-                  std::vector<Explosion>& explosions) override;
+    void updateAI(float dt, const TileMap& map, PolarBear& player) override;
     void render(SDL_Renderer* renderer, const Camera& camera) override;
+
+    // Snow robot-specific projectile spawning
+    void spawnProjectiles(std::vector<Fireball>& fireballs);
+    void spawnExplosions(std::vector<Explosion>& explosions);
 
     void takeDamage(int amount) override;
     bool isDead() const override;
@@ -77,7 +91,8 @@ class SnowRobotBoss : public Boss
     Mix_Chunk* metalClashSound = nullptr;
 
     // State machine
-    BossState state = BossIdle;
+    BossState state = BossActive;           // General boss lifecycle state
+    SnowRobotBossPhase phase = SnowPhaseIdle;  // Snow robot attack pattern state
     int animFrame   = 0;
     float animTimer = 0.0f;
 
@@ -136,6 +151,10 @@ class SnowRobotBoss : public Boss
     bool musicStartRequested = false;
     bool musicStopRequested  = false;
     bool musicLoopRequested  = false;
+
+    // Pending projectiles created during updateAI (transferred via spawn methods)
+    std::vector<Fireball> pendingFireballs;
+    std::vector<Explosion> pendingExplosions;
 
     // Helper methods
     void updateIdleState(float dt);

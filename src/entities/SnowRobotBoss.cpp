@@ -114,9 +114,12 @@ void SnowRobotBoss::updateIntro(float dt)
     }
 }
 
-void SnowRobotBoss::updateAI(float dt, const TileMap& map, PolarBear& player,
-                             std::vector<Fireball>& fireballs, std::vector<Explosion>& explosions)
+void SnowRobotBoss::updateAI(float dt, const TileMap& map, PolarBear& player)
 {
+    // Clear pending projectiles at start of frame
+    pendingFireballs.clear();
+    pendingExplosions.clear();
+
     // Allow death states to run even before intro is done
     if (!introDone && state != BossDying && state != BossDisappearing && state != BossDead)
         return;
@@ -125,38 +128,47 @@ void SnowRobotBoss::updateAI(float dt, const TileMap& map, PolarBear& player,
     if (alive)
         lastPlayerX = player.x;
 
-    // Once dead, only allow death state processing (no attacks/dashes)
-    if (!alive && state != BossDying && state != BossDisappearing && state != BossDead)
-        return;
-
     // Tick invulnerability timer
     if (invulnerableTimer > 0.0f)
         invulnerableTimer = std::max(0.0f, invulnerableTimer - dt);
 
     // Do NOT clear hitThisAttack on player attack end; immunity lasts until next vulnerable phase
 
+    // Handle general boss lifecycle state
     switch (state)
     {
-        case BossIdle:
-            updateIdleState(dt);
+        case BossIntro:
+            updateIntro(dt);
             break;
-        case BossDecision:
-            updateDecisionState(dt);
-            break;
-        case BossAttack:
-            updateAttackState(dt, player, fireballs);
-            break;
-        case BossDashPrep:
-            updateDashPrepState(dt, player);
-            break;
-        case BossDashMove:
-            updateDashMoveState(dt, map);
-            break;
-        case BossVulnerable:
-            updateVulnerableState(dt);
+        case BossActive:
+            // Only process attack phases when boss is alive
+            if (alive)
+            {
+                switch (phase)
+                {
+                    case SnowPhaseIdle:
+                        updateIdleState(dt);
+                        break;
+                    case SnowPhaseDecision:
+                        updateDecisionState(dt);
+                        break;
+                    case SnowPhaseAttack:
+                        updateAttackState(dt, player, pendingFireballs);
+                        break;
+                    case SnowPhaseDashPrep:
+                        updateDashPrepState(dt, player);
+                        break;
+                    case SnowPhaseDashMove:
+                        updateDashMoveState(dt, map);
+                        break;
+                    case SnowPhaseVulnerable:
+                        updateVulnerableState(dt);
+                        break;
+                }
+            }
             break;
         case BossDying:
-            updateDyingState(dt, explosions);
+            updateDyingState(dt, pendingExplosions);
             break;
         case BossDisappearing:
             updateDisappearingState(dt);
@@ -175,7 +187,7 @@ void SnowRobotBoss::updateIdleState(float dt)
     if (decisionTimer >= decisionInterval)
     {
         decisionTimer = 0.0f;
-        state         = BossDecision;
+        phase         = SnowPhaseDecision;
     }
 }
 
@@ -190,7 +202,7 @@ void SnowRobotBoss::updateDecisionState(float dt)
 
         if (canDash && attackChoice < dashProb)
         {
-            state          = BossDashPrep;
+            phase          = SnowPhaseDashPrep;
             animFrame      = 0;
             animTimer      = 0.0f;
             dashPrepLoops  = 0;
@@ -198,7 +210,7 @@ void SnowRobotBoss::updateDecisionState(float dt)
         }
         else
         {
-            state       = BossAttack;
+            phase       = SnowPhaseAttack;
             animFrame   = 1;
             animTimer   = 0.0f;
             attackFired = false;
@@ -206,7 +218,7 @@ void SnowRobotBoss::updateDecisionState(float dt)
     }
     else
     {
-        state = BossIdle;
+        phase = SnowPhaseIdle;
     }
 
     // Degrade probability
@@ -262,7 +274,7 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
 
         if (animFrame > 9)
         {
-            state       = BossIdle;
+            phase       = SnowPhaseIdle;
             animFrame   = 0;
             attackFired = false;
             break;
@@ -297,7 +309,7 @@ void SnowRobotBoss::updateDashPrepState(float dt, PolarBear& player)
             }
             else
             {
-                state        = BossDashMove;
+                phase        = SnowPhaseDashMove;
                 animFrame    = 5;
                 animTimer    = 0.0f;
                 dashDistance = 0.0f;
@@ -331,7 +343,7 @@ void SnowRobotBoss::updateDashMoveState(float dt, const TileMap& map)
 
     if (dashDistance >= dashTarget || animFrame >= 15)
     {
-        state           = BossVulnerable;
+        phase           = SnowPhaseVulnerable;
         animFrame       = 0;
         animTimer       = 0.0f;
         levitateOffset  = 0.0f;
@@ -370,7 +382,7 @@ void SnowRobotBoss::updateVulnerableState(float dt)
 
         if (animFrame >= 16)
         {
-            state     = BossIdle;
+            phase     = SnowPhaseIdle;
             animFrame = 0;  // Reset to first attack frame on idle
             break;
         }
@@ -455,8 +467,8 @@ void SnowRobotBoss::updateDeadState(float dt)
 
 void SnowRobotBoss::takeDamage(int amount)
 {
-    // Only allow damage when vulnerable (in vulnerable state, frame >= 9, not yet hit)
-    if (state != BossVulnerable || animFrame < 9 || hitThisAttack)
+    // Only allow damage when vulnerable (in vulnerable phase, frame >= 9, not yet hit)
+    if (state != BossActive || phase != SnowPhaseVulnerable || animFrame < 9 || hitThisAttack)
     {
         // Play metal clash sound whenever damage is rejected
         if (metalClashSound)
@@ -488,7 +500,7 @@ bool SnowRobotBoss::isDead() const
 bool SnowRobotBoss::isVulnerable() const
 {
     // Consider boss vulnerable only after frame 9 (during loop frames 10-12) and if not yet hit
-    return state == BossVulnerable && animFrame >= 9 && !hitThisAttack;
+    return state == BossActive && phase == SnowPhaseVulnerable && animFrame >= 9 && !hitThisAttack;
 }
 
 void SnowRobotBoss::getCollisionRect(SDL_Rect& outRect) const
@@ -514,7 +526,7 @@ void SnowRobotBoss::render(SDL_Renderer* renderer, const Camera& camera)
     // Apply red tint based on damage; flicker slightly when immune in vulnerable
     float damageRatio = (5 - health) / 5.0f;
     Uint8 greenBlue   = static_cast<Uint8>(255 * (1.0f - damageRatio * 0.8f));
-    if (state == BossVulnerable && hitThisAttack)
+    if (phase == SnowPhaseVulnerable && hitThisAttack)
     {
         // Simple flicker effect: toggle dim each frame
         static bool dimToggle = false;
@@ -537,12 +549,12 @@ void SnowRobotBoss::render(SDL_Renderer* renderer, const Camera& camera)
         texToUse = introTexture;
         frameIdx = 0;
     }
-    else if (state == BossDashPrep || state == BossDashMove)
+    else if (phase == SnowPhaseDashPrep || phase == SnowPhaseDashMove)
     {
         texToUse = dashTexture;
         frameIdx = animFrame;
     }
-    else if (state == BossVulnerable || state == BossDying || state == BossDisappearing)
+    else if (phase == SnowPhaseVulnerable || state == BossDying || state == BossDisappearing)
     {
         texToUse = vulnerableTexture;
         frameIdx = animFrame;
@@ -575,4 +587,23 @@ bool SnowRobotBoss::shouldStopMusic() const
 bool SnowRobotBoss::shouldLoopMusic() const
 {
     return musicLoopRequested;
+}
+void SnowRobotBoss::spawnProjectiles(std::vector<Fireball>& fireballs)
+{
+    // Transfer all pending fireballs to the Game's fireball list
+    for (auto& fb : pendingFireballs)
+    {
+        fireballs.push_back(fb);
+    }
+    pendingFireballs.clear();
+}
+
+void SnowRobotBoss::spawnExplosions(std::vector<Explosion>& explosions)
+{
+    // Transfer all pending explosions to the Game's explosion list
+    for (auto& exp : pendingExplosions)
+    {
+        explosions.push_back(exp);
+    }
+    pendingExplosions.clear();
 }
