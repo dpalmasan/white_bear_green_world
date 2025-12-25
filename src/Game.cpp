@@ -76,6 +76,14 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
+    // Load title screen assets
+    if (!titleScreen.load(renderer, config.assetPath))
+    {
+        std::cerr << "Failed to load title screen assets (title-screen.png, title_screen.ogg) from '"
+                  << config.assetPath << "'\n";
+    }
+    titleScreen.start();
+
     // If starting on world map, load only world map assets and return
     if (config.showWorldMap)
     {
@@ -404,12 +412,28 @@ void Game::loadAssets()
 }
 
 // Processes keyboard input and updates player control state.
-// Processes keyboard input and updates player control state.
 void Game::handleInput()
 {
     // Set world map mode for input manager
     input.setWorldMapActive(config.showWorldMap);
     
+    // Handle title screen input
+    if (showTitleScreen)
+    {
+        input.handleEvents(running);
+        
+        // Any key or button to start the game
+        if (input.isPausePressed() || input.isJumping() || input.isAttacking() || 
+            input.isMovingLeft() || input.isMovingRight())
+        {
+            showTitleScreen = false;
+            titleScreen.reset();
+            // Game will naturally proceed to world map or stage based on config
+        }
+        
+        input.resetFrameEvents();
+        return;
+    }
     // Handle all SDL events and keyboard state
     input.handleEvents(running);
 
@@ -577,6 +601,13 @@ void Game::handleInput()
 // Updates game state: player physics, enemy behavior, collisions, and effects.
 void Game::update(float dt)
 {
+    // Skip game updates while on title screen
+    if (showTitleScreen)
+    {
+        titleScreen.update(dt);
+        return;
+    }
+
     if (config.showWorldMap)
     {
         worldMap.update(dt);
@@ -1154,6 +1185,14 @@ void Game::render()
     // Clear the screen with a dark blue background.
     SDL_SetRenderDrawColor(renderer, 50, 50, 100, 255);
     SDL_RenderClear(renderer);
+
+    // Render title screen if active
+    if (showTitleScreen)
+    {
+        titleScreen.render(renderer);
+        SDL_RenderPresent(renderer);
+        return;
+    }
 
     if (config.showWorldMap)
     {

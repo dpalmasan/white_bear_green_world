@@ -17,6 +17,7 @@
 #include "Config.h"
 #include "Explosion.h"
 #include "TileMap.h"
+#include "TitleScreen.h"
 #include "WorldMap.h"
 #include "core/Camera.h"
 #include "core/Input.h"
@@ -109,6 +110,10 @@ class Game
     SDL_Texture* bossRobotVulnerableTex = nullptr;  // Boss vulnerable texture (16 frames)
     SDL_Texture* endSceneTexture        = nullptr;  // End scene overlay
     Mix_Music* endSceneMusic            = nullptr;  // Scene music at end of area
+
+    // Title screen
+    TitleScreen titleScreen;
+    bool showTitleScreen = true;  // Start with title screen
 
     // Boss management (using interface pattern)
     std::unique_ptr<Boss> boss;     // Current boss instance
