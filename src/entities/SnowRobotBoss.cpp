@@ -197,23 +197,63 @@ void SnowRobotBoss::updateDecisionState(float dt)
     if (r <= shootProb)
     {
         bool canDash       = (bulletsShot >= 3);
-        float dashProb     = canDash ? (1.0f / 3.0f) : 0.0f;
-        float attackChoice = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-
-        if (canDash && attackChoice < dashProb)
+        
+        // When health is 2, use custom probability distribution
+        if (health == 2)
         {
-            phase          = SnowPhaseDashPrep;
-            animFrame      = 0;
-            animTimer      = 0.0f;
-            dashPrepLoops  = 0;
-            levitateOffset = 0.0f;
+            // Dash: 1/5, Triple fireballs: 3/5, Single fireball: 1/5
+            float choice = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+            
+            if (choice < 0.2f)  // 1/5 = 0.2
+            {
+                // Dash attack
+                phase          = SnowPhaseDashPrep;
+                animFrame      = 0;
+                animTimer      = 0.0f;
+                dashPrepLoops  = 0;
+                levitateOffset = 0.0f;
+                fireTripleFireballs = false;
+            }
+            else if (choice < 0.8f)  // Next 3/5 = 0.6 (0.2 + 0.6 = 0.8)
+            {
+                // Triple fireball attack
+                phase       = SnowPhaseAttack;
+                animFrame   = 1;
+                animTimer   = 0.0f;
+                attackFired = false;
+                fireTripleFireballs = true;
+            }
+            else  // Remaining 1/5 = 0.2
+            {
+                // Single fireball attack
+                phase       = SnowPhaseAttack;
+                animFrame   = 1;
+                animTimer   = 0.0f;
+                attackFired = false;
+                fireTripleFireballs = false;
+            }
         }
         else
         {
-            phase       = SnowPhaseAttack;
-            animFrame   = 1;
-            animTimer   = 0.0f;
-            attackFired = false;
+            // Normal probability logic for health > 2
+            float dashProb     = canDash ? (1.0f / 3.0f) : 0.0f;
+            float attackChoice = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+
+            if (canDash && attackChoice < dashProb)
+            {
+                phase          = SnowPhaseDashPrep;
+                animFrame      = 0;
+                animTimer      = 0.0f;
+                dashPrepLoops  = 0;
+                levitateOffset = 0.0f;
+            }
+            else
+            {
+                phase       = SnowPhaseAttack;
+                animFrame   = 1;
+                animTimer   = 0.0f;
+                attackFired = false;
+            }
         }
     }
     else
@@ -221,11 +261,19 @@ void SnowRobotBoss::updateDecisionState(float dt)
         phase = SnowPhaseIdle;
     }
 
-    // Degrade probability
-    if (shootProb > 0.51f)
-        shootProb = 0.5f;
-    else if (shootProb > 0.34f)
-        shootProb = 1.0f / 3.0f;
+    // Degrade probability only when health > 2 (don't degrade at low health)
+    if (health > 2)
+    {
+        if (shootProb > 0.51f)
+            shootProb = 0.5f;
+        else if (shootProb > 0.34f)
+            shootProb = 1.0f / 3.0f;
+    }
+    else if (health == 2)
+    {
+        // Keep shootProb high at low health so decisions are always made
+        shootProb = 1.0f;
+    }
 }
 
 void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<Fireball>& fireballs)
@@ -236,7 +284,30 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
         animTimer -= attackFrameTime;
         animFrame++;
 
-        if (!attackFired && animFrame == 5)
+        // Determine if we should fire triple or single fireball
+        int fireballsToShoot = (health == 2 && fireTripleFireballs) ? 3 : 1;
+        std::vector<int> fireFrames;
+        if (health == 2 && fireTripleFireballs)
+        {
+            fireFrames = {3, 5, 7};  // Triple: fire at frames 3, 5, 7 for rapid sequence
+        }
+        else
+        {
+            fireFrames = {5};  // Single: fire at frame 5
+        }
+
+        // Check if we should fire this frame
+        bool shouldFire = false;
+        for (int fireFrame : fireFrames)
+        {
+            if (animFrame == fireFrame && !attackFired)
+            {
+                shouldFire = true;
+                break;
+            }
+        }
+
+        if (shouldFire)
         {
             Fireball fb;
             fb.texture = fireballTexture;
@@ -266,10 +337,19 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
             fb.x        = bcx - fb.width * 0.5f;
             fb.y        = bcy - fb.height * 0.5f;
             fireballs.push_back(fb);
-            attackFired = true;
             bulletsShot++;
             if (laserSound)
                 Mix_PlayChannel(-1, laserSound, 0);
+        }
+
+        // Mark as fired only after all fireballs are shot
+        if (health == 2 && fireTripleFireballs && animFrame > 7)
+        {
+            attackFired = true;
+        }
+        else if (!(health == 2 && fireTripleFireballs) && animFrame > 5)
+        {
+            attackFired = true;
         }
 
         if (animFrame > 9)
@@ -277,6 +357,7 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
             phase       = SnowPhaseIdle;
             animFrame   = 0;
             attackFired = false;
+            fireTripleFireballs = false;
             break;
         }
     }
@@ -318,7 +399,9 @@ void SnowRobotBoss::updateDashPrepState(float dt, PolarBear& player)
                 float bearCX = player.x + player.spriteWidth * 0.5f;
                 float bossCX = worldX + 32.0f;
                 float dir    = (bearCX > bossCX) ? 1.0f : -1.0f;
-                dashVX       = dir * 400.0f;
+                // When health is 2, dash faster (600 instead of 400)
+                float dashSpeed = (health == 2) ? 600.0f : 400.0f;
+                dashVX       = dir * dashSpeed;
                 if (jetSound)
                     Mix_PlayChannel(-1, jetSound, 0);
                 break;

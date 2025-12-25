@@ -4,8 +4,7 @@
 // Explosion.h
 // Explosion effect data structure.
 
-#ifndef EXPLOSION_H
-#define EXPLOSION_H
+#pragma once
 
 #include <SDL2/SDL.h>
 
@@ -49,5 +48,3 @@ struct Explosion
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     }
 };
-
-#endif  // EXPLOSION_H

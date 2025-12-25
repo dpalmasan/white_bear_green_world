@@ -4,8 +4,7 @@
 // Boss.h
 // Abstract base class for boss enemies with complex behavior patterns.
 
-#ifndef BOSS_H
-#define BOSS_H
+#pragma once
 
 #include <SDL2/SDL.h>
 
@@ -75,5 +74,3 @@ class Boss
    protected:
     Boss() = default;
 };
-
-#endif  // BOSS_H

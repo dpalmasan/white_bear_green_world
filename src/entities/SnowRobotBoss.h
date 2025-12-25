@@ -4,8 +4,7 @@
 // SnowRobotBoss.h
 // Snow robot boss with dash attack, vulnerable states, and death sequence.
 
-#ifndef SNOW_ROBOT_BOSS_H
-#define SNOW_ROBOT_BOSS_H
+#pragma once
 
 #include <SDL2/SDL_mixer.h>
 
@@ -116,9 +115,11 @@ class SnowRobotBoss : public Boss
     const float decisionInterval = 1.0f;
     float shootProb              = 1.0f;
     int bulletsShot              = 0;
+    bool hasTripleFiredAtLowHealth = false;  // Track if triple fireball attack used at health=2
 
     // Attack behavior
     bool attackFired            = false;
+    bool fireTripleFireballs    = false;  // Flag to trigger triple fireball attack at low health
     const float attackFrameTime = 0.15f;
 
     // Dash attack
@@ -167,5 +168,3 @@ class SnowRobotBoss : public Boss
     void updateDisappearingState(float dt);
     void updateDeadState(float dt);
 };
-
-#endif  // SNOW_ROBOT_BOSS_H
