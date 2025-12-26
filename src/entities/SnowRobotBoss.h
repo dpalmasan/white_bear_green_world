@@ -113,9 +113,9 @@ class SnowRobotBoss : public Boss
     // Decision making
     float decisionTimer          = 0.0f;
     const float decisionInterval = 1.0f;
-    float shootProb              = 1.0f;
-    int bulletsShot              = 0;
-    bool hasTripleFiredAtLowHealth = false;  // Track if triple fireball attack used at health=2
+    float shootProb               = 1.0f;
+    int bulletsShot               = 0;
+    int forcedTripleShotsRemaining = 0;  // Number of guaranteed triple shots at current low health
 
     // Attack behavior
     bool attackFired            = false;

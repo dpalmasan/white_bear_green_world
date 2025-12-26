@@ -95,6 +95,7 @@ class Game
     Mix_Music* backgroundMusic = nullptr;  // Background music for the current stage.
     Mix_Music* powerUpMusic    = nullptr;  // Short cue played on pickup
     Mix_Music* bossMusic       = nullptr;  // Boss music for snow-robot intro
+    Mix_Music* mapMusic        = nullptr;  // Music for world map screen
 
     // Sound effects
     Mix_Chunk* slashSound     = nullptr;
@@ -105,6 +106,7 @@ class Game
     SDL_Texture* roboFireballTexture    = nullptr;
     SDL_Texture* frenzyWolfIdleTex      = nullptr;
     SDL_Texture* frenzyWolfRunTex       = nullptr;
+    SDL_Texture* arachnoidTexture       = nullptr;  // Arachnoid spider enemy
     SDL_Texture* bossSnowRobotTex       = nullptr;  // Boss texture for snow-robot
     SDL_Texture* bossRobotAttackTex     = nullptr;  // Boss attack/idle texture
     SDL_Texture* bossRobotDashTex       = nullptr;  // Boss dash attack texture (16 frames)
@@ -170,6 +172,8 @@ class Game
     bool pickupMusicStarted    = false;  // Track if pickup music has been triggered
     float pickupPostMusicDelay = 0.5f;   // Silence after music finishes
     float pickupPostMusicTimer = 0.0f;   // Timer for post-music silence
+    bool returnToMapAfterPickup = false;  // If true, exit to world map after pickup sequence
+    bool transitioningToMap     = false;  // Active fade-out from stage to world map
     bool endingStage      = false;   // True after touching end-of-area; shows scene and plays music
     bool endSceneShowing  = false;   // True once fade completes and scene is displayed
     float endFadeTimer    = 0.0f;    // Accumulated time for end fade
@@ -182,4 +186,11 @@ class Game
     bool wmFadingIn      = false;  // Fading from black after stage loads
     float wmFadeTimer    = 0.0f;
     float wmFadeDuration = 0.8f;  // Duration for fade out/in
+
+    // Stage-to-stage transition fade (fast transitions between areas)
+    bool stageFadingOut     = false;  // Fading to black before loading new stage
+    bool stageFadingIn      = false;  // Fading from black after new stage loads
+    float stageFadeTimer    = 0.0f;
+    float stageFadeDuration = 0.5f;    // Fast fade: 0.5s out + 0.5s in = 1s total
+    std::string nextStageName;         // Stage to load after fade-out completes
 };

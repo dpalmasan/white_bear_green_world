@@ -198,39 +198,52 @@ void SnowRobotBoss::updateDecisionState(float dt)
     {
         bool canDash       = (bulletsShot >= 3);
         
-        // When health is 2, use custom probability distribution
-        if (health == 2)
+        // When health is 1 or 2, guarantee two triple shots per phase before
+        // using the weighted probabilities (Dash 1/5, Triple 3/5, Single 1/5).
+        if (health == 1 || health == 2)
         {
-            // Dash: 1/5, Triple fireballs: 3/5, Single fireball: 1/5
-            float choice = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
-            
-            if (choice < 0.2f)  // 1/5 = 0.2
+            if (forcedTripleShotsRemaining > 0)
             {
-                // Dash attack
-                phase          = SnowPhaseDashPrep;
-                animFrame      = 0;
-                animTimer      = 0.0f;
-                dashPrepLoops  = 0;
-                levitateOffset = 0.0f;
-                fireTripleFireballs = false;
+                // Consume a forced triple-shot
+                phase                 = SnowPhaseAttack;
+                animFrame             = 1;
+                animTimer             = 0.0f;
+                attackFired           = false;
+                fireTripleFireballs   = true;
+                forcedTripleShotsRemaining--;
             }
-            else if (choice < 0.8f)  // Next 3/5 = 0.6 (0.2 + 0.6 = 0.8)
+            else
             {
-                // Triple fireball attack
-                phase       = SnowPhaseAttack;
-                animFrame   = 1;
-                animTimer   = 0.0f;
-                attackFired = false;
-                fireTripleFireballs = true;
-            }
-            else  // Remaining 1/5 = 0.2
-            {
-                // Single fireball attack
-                phase       = SnowPhaseAttack;
-                animFrame   = 1;
-                animTimer   = 0.0f;
-                attackFired = false;
-                fireTripleFireballs = false;
+                float choice = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+
+                if (choice < 0.2f)
+                {
+                    // Dash attack
+                    phase                 = SnowPhaseDashPrep;
+                    animFrame             = 0;
+                    animTimer             = 0.0f;
+                    dashPrepLoops         = 0;
+                    levitateOffset        = 0.0f;
+                    fireTripleFireballs   = false;
+                }
+                else if (choice < 0.8f)
+                {
+                    // Triple fireball attack
+                    phase                 = SnowPhaseAttack;
+                    animFrame             = 1;
+                    animTimer             = 0.0f;
+                    attackFired           = false;
+                    fireTripleFireballs   = true;
+                }
+                else
+                {
+                    // Single fireball attack
+                    phase                 = SnowPhaseAttack;
+                    animFrame             = 1;
+                    animTimer             = 0.0f;
+                    attackFired           = false;
+                    fireTripleFireballs   = false;
+                }
             }
         }
         else
@@ -269,9 +282,9 @@ void SnowRobotBoss::updateDecisionState(float dt)
         else if (shootProb > 0.34f)
             shootProb = 1.0f / 3.0f;
     }
-    else if (health == 2)
+    else
     {
-        // Keep shootProb high at low health so decisions are always made
+        // Keep decisions active at low health
         shootProb = 1.0f;
     }
 }
@@ -285,9 +298,9 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
         animFrame++;
 
         // Determine if we should fire triple or single fireball
-        int fireballsToShoot = (health == 2 && fireTripleFireballs) ? 3 : 1;
+        bool tripleAttack = (health <= 2 && fireTripleFireballs);
         std::vector<int> fireFrames;
-        if (health == 2 && fireTripleFireballs)
+        if (tripleAttack)
         {
             fireFrames = {3, 5, 7};  // Triple: fire at frames 3, 5, 7 for rapid sequence
         }
@@ -343,11 +356,11 @@ void SnowRobotBoss::updateAttackState(float dt, PolarBear& player, std::vector<F
         }
 
         // Mark as fired only after all fireballs are shot
-        if (health == 2 && fireTripleFireballs && animFrame > 7)
+        if (tripleAttack && animFrame > 7)
         {
             attackFired = true;
         }
-        else if (!(health == 2 && fireTripleFireballs) && animFrame > 5)
+        else if (!tripleAttack && animFrame > 5)
         {
             attackFired = true;
         }
@@ -561,6 +574,12 @@ void SnowRobotBoss::takeDamage(int amount)
 
     health -= amount;
     hitThisAttack = true;
+
+    // Reset forced triple-shot count when entering low-health thresholds
+    if (health == 2 || health == 1)
+    {
+        forcedTripleShotsRemaining = 2;
+    }
 
     if (health <= 0)
     {

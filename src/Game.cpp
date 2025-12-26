@@ -76,6 +76,39 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
+    // If starting on world map, load only world map assets and skip intro/title
+    if (config.showWorldMap)
+    {
+        // Render world map at full screen: reset scale and logical size to window dimensions
+        SDL_RenderSetScale(renderer, 1.0f, 1.0f);
+        SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
+
+        if (!worldMap.load(renderer, config.assetPath))
+        {
+            std::cerr << "Failed to load world map assets (world-map.png, map-cursor.png) from '"
+                      << config.assetPath << "'\n";
+        }
+        worldMap.debug = config.worldMapDebug;
+        
+        // Load and play map music
+        mapMusic = Mix_LoadMUS((config.assetPath + "music/map.ogg").c_str());
+        if (!mapMusic)
+        {
+            std::cerr << "Failed to load map.ogg: " << Mix_GetError() << "\n";
+        }
+        else
+        {
+            Mix_PlayMusic(mapMusic, -1);  // Loop map music
+        }
+        
+        // Skip intro and title screen
+        showIntroCutscene = false;
+        showTitleScreen = false;
+        
+        // Camera view is already set in init; nothing else to load
+        return;
+    }
+
     // Load intro cutscene assets (6 scenes from images/introduction/)
     if (!introCutscene.load(renderer, config.assetPath + "images/introduction/", 6,
                             config.assetPath + "music/title_screen.ogg", true))
@@ -89,19 +122,6 @@ void Game::loadAssets()
     {
         std::cerr << "Failed to load title screen assets (title-screen.png, title_screen.ogg) from '"
                   << config.assetPath << "'\n";
-    }
-
-    // If starting on world map, load only world map assets and return
-    if (config.showWorldMap)
-    {
-        if (!worldMap.load(renderer, config.assetPath))
-        {
-            std::cerr << "Failed to load world map assets (world-map.png, map-cursor.png) from '"
-                      << config.assetPath << "'\n";
-        }
-        worldMap.debug = config.worldMapDebug;
-        // Camera view is already set in init; nothing else to load
-        return;
     }
 
     // Build stage path dynamically (e.g., "stage1" or "dev_stage")
@@ -137,6 +157,10 @@ void Game::loadAssets()
         IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-attack.png").c_str());
     if (!frenzyWolfRunTex)
         std::cerr << "Failed to load frenzy_wolf-attack.png: " << IMG_GetError() << "\n";
+
+    arachnoidTexture = IMG_LoadTexture(renderer, (config.assetPath + "arachnoid.png").c_str());
+    if (!arachnoidTexture)
+        std::cerr << "Failed to load arachnoid.png: " << IMG_GetError() << "\n";
 
     bossSnowRobotTex =
         IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-deactivated.png").c_str());
@@ -313,7 +337,7 @@ void Game::loadAssets()
 
             enemies.push_back(std::move(robo));
         }
-        else if (tile->enemyType == "wolf")
+        else if (tile->enemyType == "frenzy_wolf")
         {
             auto wolf = std::make_unique<FrenzyWolf>();
             // Assign shared textures
@@ -328,6 +352,32 @@ void Game::loadAssets()
             wolf->onGround = false;
 
             enemies.push_back(std::move(wolf));
+        }
+        else if (tile->enemyType == "arachnoid")
+        {
+            auto arachnoid = std::make_unique<Arachnoid>();
+            // Assign texture
+            if (arachnoidTexture)
+            {
+                arachnoid->texture = arachnoidTexture;
+                // Set up animation: arachnoid.png has 4 frames
+                int texW = 0, texH = 0;
+                SDL_QueryTexture(arachnoidTexture, nullptr, nullptr, &texW, &texH);
+                if (texW > 0 && arachnoid->width > 0)
+                {
+                    arachnoid->numFrames = texW / arachnoid->width;
+                    if (arachnoid->numFrames < 1)
+                        arachnoid->numFrames = 1;
+                }
+                arachnoid->frameTime = 0.12f;  // ~8 fps animation
+            }
+            // Position just above the tile below
+            arachnoid->x        = worldX;
+            arachnoid->y        = (tile->y + 1) * map.tileSize - arachnoid->height - spawnOffset;
+            arachnoid->vy       = 0.0f;
+            arachnoid->onGround = false;
+
+            enemies.push_back(std::move(arachnoid));
         }
     }
     // Cache end-of-area triggers as rectangles
@@ -378,34 +428,10 @@ void Game::loadAssets()
         }
     }
 
-    // Load and play background music for the stage (looping).
+    // Load background music for the stage (looping).
     // Music is located in assets/music/ folder (shared across stages)
-    // Skip autoplay for boss maps; boss music will start with intro
-    if (stageName != "snowy-cliffs-boss")
-    {
-        std::string musicPath;
-        if (stageName == "snowy-cliffs-boss")
-        {
-            musicPath = config.assetPath + std::string("music/snowy_cliffs_boss.ogg");
-        }
-        else
-        {
-            musicPath = config.assetPath + std::string("music/snowy_cliffs.ogg");
-        }
-        backgroundMusic = Mix_LoadMUS(musicPath.c_str());
-        if (!backgroundMusic)
-        {
-            std::cerr << "Failed to load music '" << musicPath << "': " << Mix_GetError() << "\n";
-        }
-        else
-        {
-            if (Mix_PlayMusic(backgroundMusic, -1) < 0)
-            {
-                std::cerr << "Failed to play music: " << Mix_GetError() << "\n";
-            }
-        }
-    }
-    else
+    // Skip autoplay for boss maps or if showing intro/title; music will start after title screen
+    if (stageName == "snowy-cliffs-boss")
     {
         // Preload boss theme; do not play until intro starts
         const std::string bossMusicPath = config.assetPath + std::string("music/boss_theme.ogg");
@@ -416,6 +442,37 @@ void Game::loadAssets()
                       << "\n";
         }
     }
+    else
+    {
+        // Regular stage: determine music based on stage name
+        std::string musicPath;
+        if (stageName == "snowy-cliffs")
+        {
+            musicPath = config.assetPath + std::string("music/snowy_cliffs.ogg");
+        }
+        else
+        {
+            // Default fallback
+            musicPath = config.assetPath + std::string("music/snowy_cliffs.ogg");
+        }
+        
+        backgroundMusic = Mix_LoadMUS(musicPath.c_str());
+        if (!backgroundMusic)
+        {
+            std::cerr << "Failed to load music '" << musicPath << "': " << Mix_GetError() << "\n";
+        }
+        else
+        {
+            // Only autoplay if NOT showing intro/title (e.g., direct stage load or world map transition)
+            if (!showIntroCutscene && !showTitleScreen)
+            {
+                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
+                {
+                    std::cerr << "Failed to play music: " << Mix_GetError() << "\n";
+                }
+            }
+        }
+    }
 }
 
 // Processes keyboard input and updates player control state.
@@ -423,6 +480,38 @@ void Game::handleInput()
 {
     // Set world map mode for input manager
     input.setWorldMapActive(config.showWorldMap);
+    
+    // Handle world map navigation first (before Input consumes events)
+    if (config.showWorldMap)
+    {
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_QUIT)
+            {
+                running = false;
+            }
+            worldMap.handleEvent(e);
+            
+            // Also check for selection (Enter/J key)
+            if (e.type == SDL_KEYDOWN && (e.key.keysym.sym == SDLK_RETURN || e.key.keysym.sym == SDLK_j))
+            {
+                if (worldMap.currentIndex >= 0 &&
+                    worldMap.currentIndex < (int)worldMap.locations.size())
+                {
+                    const auto &loc = worldMap.locations[worldMap.currentIndex];
+                    if (loc.name == "Snowy Cliffs")
+                    {
+                        // Begin fade-out transition; actual load happens after fade completes
+                        wmFadingOut = true;
+                        wmFadingIn  = false;
+                        wmFadeTimer = 0.0f;
+                    }
+                }
+            }
+        }
+        return;
+    }
     
     // Handle intro cutscene input (skip on 'j' if skippable)
     if (showIntroCutscene)
@@ -453,6 +542,14 @@ void Game::handleInput()
         {
             showTitleScreen = false;
             titleScreen.reset();
+            // Start stage background music now that intro/title sequence is complete
+            if (backgroundMusic && !Mix_PlayingMusic())
+            {
+                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
+                {
+                    std::cerr << "Failed to start stage music: " << Mix_GetError() << "\n";
+                }
+            }
             // Game will naturally proceed to world map or stage based on config
         }
         
@@ -461,29 +558,6 @@ void Game::handleInput()
     }
     // Handle all SDL events and keyboard state
     input.handleEvents(running);
-
-    if (config.showWorldMap)
-    {
-        // Handle world map selection input
-        if (input.isSelectPressed())
-        {
-            if (worldMap.currentIndex >= 0 &&
-                worldMap.currentIndex < (int)worldMap.locations.size())
-            {
-                const auto &loc = worldMap.locations[worldMap.currentIndex];
-                if (loc.name == "Snowy Cliffs")
-                {
-                    // Begin fade-out transition; actual load happens after fade completes
-                    wmFadingOut = true;
-                    wmFadingIn  = false;
-                    wmFadeTimer = 0.0f;
-                }
-            }
-        }
-        // Reset frame events and return
-        input.resetFrameEvents();
-        return;
-    }
 
     // Disable input during boss intro or while boss explicitly disables inputs
     if (boss && (boss->isIntroActive() || boss->shouldDisableInputs()))
@@ -672,6 +746,12 @@ void Game::update(float dt)
                 config.showWorldMap = false;
                 stageName           = "snowy-cliffs";
 
+                // Stop map music
+                if (mapMusic)
+                {
+                    Mix_HaltMusic();
+                }
+
                 // Reset gameplay state
                 enemies.clear();
                 fireballs.clear();
@@ -689,8 +769,70 @@ void Game::update(float dt)
         }
         return;
     }
+
+    // Handle stage-to-stage transition fade
+    if (stageFadingOut)
+    {
+        stageFadeTimer += dt;
+        if (stageFadeTimer >= stageFadeDuration)
+        {
+            // Fade-out complete: stop music, clear state, load new stage
+            Mix_HaltMusic();
+            
+            enemies.clear();
+            fireballs.clear();
+            explosions.clear();
+            powerUps.clear();
+            endAreas.clear();
+            
+            stageName = nextStageName;
+            // If we are exiting to the world map, flip the flag before loading assets
+            if (transitioningToMap)
+                config.showWorldMap = true;
+            loadAssets();
+            
+            if (config.showWorldMap && transitioningToMap)
+            {
+                // Entering world map: use world-map fade-in instead of stage fade-in
+                stageFadingOut          = false;
+                stageFadingIn           = false;
+                stageFadeTimer          = 0.0f;
+                wmFadingIn              = true;
+                wmFadeTimer             = 0.0f;
+                transitioningToMap      = false;
+                returnToMapAfterPickup  = false;
+                // Camera position irrelevant for world map; keep as-is
+            }
+            else
+            {
+                // Position camera on player immediately after loading new stage
+                camera.follow(polarBear.x + polarBear.spriteWidth / 2.0f,
+                             polarBear.y + polarBear.spriteHeight / 2.0f);
+                
+                // Switch to fade-in
+                stageFadingOut = false;
+                stageFadingIn  = true;
+                stageFadeTimer = 0.0f;
+            }
+        }
+        return;  // Skip gameplay updates during fade
+    }
+
+    if (stageFadingIn)
+    {
+        stageFadeTimer += dt;
+        if (stageFadeTimer >= stageFadeDuration)
+        {
+            // Fade-in complete
+            stageFadingIn  = false;
+            stageFadeTimer = 0.0f;
+        }
+        // Don't return - allow render to happen so game is visible under fade overlay
+        // Just skip all gameplay updates below
+    }
+
     // Skip gameplay physics when paused; during special pauses, update sequence timers
-    if (paused)
+    if (paused || stageFadingIn)
     {
         if (pauseForPickup)
         {
@@ -724,14 +866,27 @@ void Game::update(float dt)
                         paused               = false;
                         pickupMusicStarted   = false;
                         pickupPostMusicTimer = 0.0f;
-                        // Resume background music
-                        if (backgroundMusic)
+
+                        if (returnToMapAfterPickup)
                         {
-                            if (Mix_PlayMusic(backgroundMusic, -1) < 0)
-                                std::cerr << "Failed to resume background music: " << Mix_GetError()
-                                          << "\n";
-                            // Restore volume
-                            Mix_VolumeMusic(96);
+                            // Begin fade-out to world map
+                            stageFadingOut     = true;
+                            stageFadingIn      = false;
+                            stageFadeTimer     = 0.0f;
+                            nextStageName      = stageName;  // stageName ignored once map loads
+                            transitioningToMap = true;
+                        }
+                        else
+                        {
+                            // Resume background music
+                            if (backgroundMusic)
+                            {
+                                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
+                                    std::cerr << "Failed to resume background music: " << Mix_GetError()
+                                              << "\n";
+                                // Restore volume
+                                Mix_VolumeMusic(96);
+                            }
                         }
                     }
                 }
@@ -957,6 +1112,9 @@ void Game::update(float dt)
             heart.glowPhase = 0.0f;
             powerUps.push_back(heart);
 
+            // After collecting the boss heart, return to the world map
+            returnToMapAfterPickup = true;
+
             // Start smooth camera unlock transition to player position
             cameraUnlocking     = true;
             cameraTransitioning = true;
@@ -1110,8 +1268,8 @@ void Game::update(float dt)
         }
     }
 
-    // End-of-area trigger collision: touching ends the stage
-    if (!endingStage)
+    // End-of-area trigger collision: touching transitions to boss stage
+    if (!endingStage && !stageFadingOut)
     {
         for (const auto &r : endAreas)
         {
@@ -1119,14 +1277,11 @@ void Game::update(float dt)
                             bearTight.y + bearTight.h < r.y || r.y + r.h < bearTight.y);
             if (endHit)
             {
-                endingStage     = true;
-                endSceneShowing = false;
-                endFadeTimer    = 0.0f;
-                paused          = true;
-                // Fade out current music over the fade duration (2-3 seconds)
-                int ms = static_cast<int>(endFadeDuration * 1000.0f);
-                if (Mix_PlayingMusic())
-                    Mix_FadeOutMusic(ms);
+                // Begin fast fade-out transition to boss stage
+                stageFadingOut = true;
+                stageFadingIn  = false;
+                stageFadeTimer = 0.0f;
+                nextStageName  = "snowy-cliffs-boss";
                 break;
             }
         }
@@ -1274,7 +1429,7 @@ void Game::render()
             lh = camera.height;
         }
         worldMap.render(renderer, lw, lh);
-        // Draw fade-out overlay while transitioning off world map
+        // Draw fade overlays when transitioning to/from world map
         if (wmFadingOut)
         {
             float t     = std::min(wmFadeTimer / wmFadeDuration, 1.0f);
@@ -1284,6 +1439,22 @@ void Game::render()
             SDL_Rect full{0, 0, lw, lh};
             SDL_RenderFillRect(renderer, &full);
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        }
+        else if (wmFadingIn)
+        {
+            float t     = std::min(wmFadeTimer / wmFadeDuration, 1.0f);
+            Uint8 alpha = static_cast<Uint8>(255 * (1.0f - t));  // black -> clear
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+            SDL_Rect full{0, 0, lw, lh};
+            SDL_RenderFillRect(renderer, &full);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            wmFadeTimer += (1.0f / 60.0f);  // approximate frame step
+            if (wmFadeTimer >= wmFadeDuration)
+            {
+                wmFadingIn  = false;
+                wmFadeTimer = 0.0f;
+            }
         }
         SDL_RenderPresent(renderer);
         return;
@@ -1514,6 +1685,28 @@ void Game::render()
         }
     }
 
+    // Stage-to-stage transition fade overlays
+    if (stageFadingOut)
+    {
+        float t     = std::min(stageFadeTimer / stageFadeDuration, 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * t);  // clear -> black
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+        SDL_Rect full{0, 0, camera.width, camera.height};
+        SDL_RenderFillRect(renderer, &full);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+    else if (stageFadingIn)
+    {
+        float t     = std::min(stageFadeTimer / stageFadeDuration, 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * (1.0f - t));  // black -> clear
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+        SDL_Rect full{0, 0, camera.width, camera.height};
+        SDL_RenderFillRect(renderer, &full);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
     // White composite overlay during boss death temporarily disabled
     /* if (bossState == BossDeath && bossDeathStage == 2) {
         // Fade disabled
@@ -1546,6 +1739,8 @@ void Game::clean()
         SDL_DestroyTexture(frenzyWolfIdleTex);
     if (frenzyWolfRunTex)
         SDL_DestroyTexture(frenzyWolfRunTex);
+    if (arachnoidTexture)
+        SDL_DestroyTexture(arachnoidTexture);
     if (map.spritesheet)
         SDL_DestroyTexture(map.spritesheet);
     if (polarBear.texture)
@@ -1560,6 +1755,8 @@ void Game::clean()
         SDL_DestroyTexture(polarBear.climbTexture);
     if (powerUpMusic)
         Mix_FreeMusic(powerUpMusic);
+    if (mapMusic)
+        Mix_FreeMusic(mapMusic);
 
     // Stop and free music, close audio.
     if (Mix_PlayingMusic())
