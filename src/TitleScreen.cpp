@@ -18,6 +18,16 @@ TitleScreen::~TitleScreen()
         SDL_DestroyTexture(titleLettersTexture);
         titleLettersTexture = nullptr;
     }
+    if (newGameTexture)
+    {
+        SDL_DestroyTexture(newGameTexture);
+        newGameTexture = nullptr;
+    }
+    if (continueTexture)
+    {
+        SDL_DestroyTexture(continueTexture);
+        continueTexture = nullptr;
+    }
     if (titleMusic)
     {
         Mix_FreeMusic(titleMusic);
@@ -40,6 +50,21 @@ bool TitleScreen::load(SDL_Renderer* renderer, const std::string& assetPath)
     if (!titleLettersTexture)
     {
         std::cerr << "Failed to load title-letters.png: " << IMG_GetError() << "\n";
+        return false;
+    }
+
+    // Load menu option images
+    newGameTexture = IMG_LoadTexture(renderer, (assetPath + "new_game.png").c_str());
+    if (!newGameTexture)
+    {
+        std::cerr << "Failed to load new_game.png: " << IMG_GetError() << "\n";
+        return false;
+    }
+
+    continueTexture = IMG_LoadTexture(renderer, (assetPath + "continue.png").c_str());
+    if (!continueTexture)
+    {
+        std::cerr << "Failed to load continue.png: " << IMG_GetError() << "\n";
         return false;
     }
 
@@ -80,12 +105,53 @@ void TitleScreen::render(SDL_Renderer* renderer)
     SDL_RenderCopy(renderer, backgroundTexture, nullptr, nullptr);
     SDL_SetTextureAlphaMod(backgroundTexture, 255);  // Reset alpha
 
-    // Draw title letters at top-left area with fade effect
+    // Draw background to fill screen with fade effect
+    SDL_SetTextureAlphaMod(backgroundTexture, (Uint8)(alpha * 255));
+    SDL_RenderCopy(renderer, backgroundTexture, nullptr, nullptr);
+    SDL_SetTextureAlphaMod(backgroundTexture, 255);  // Reset alpha
+
+    
+
+    // Render menu options (new_game and continue) using the same rect as title-screen (full-screen)
+    if (newGameTexture && continueTexture && fadedIn)
+    {
+        int winWidth  = 0;
+        int winHeight = 0;
+        SDL_RenderGetLogicalSize(renderer, &winWidth, &winHeight);
+        if (winWidth == 0 || winHeight == 0)
+        {
+            SDL_GetRendererOutputSize(renderer, &winWidth, &winHeight);
+        }
+        // Full-screen destination rect used for title-screen.png
+        SDL_Rect titleScreenRect = {0, 0, winWidth, winHeight};
+
+        // Render new_game (index 1)
+        if (selectedIndex == 1)
+        {
+            SDL_SetTextureColorMod(newGameTexture, 255, 200, 100);  // Orange highlight
+        }
+        SDL_RenderCopy(renderer, newGameTexture, nullptr, nullptr);
+        SDL_SetTextureColorMod(newGameTexture, 255, 255, 255);  // Reset
+
+        // Render continue (index 0)
+        if (selectedIndex == 0)
+        {
+            SDL_SetTextureColorMod(continueTexture, 255, 200, 100);  // Orange highlight
+        }
+        SDL_RenderCopy(renderer, continueTexture, nullptr, nullptr);
+        SDL_SetTextureColorMod(continueTexture, 255, 255, 255);  // Reset
+    }
+
+    // Draw title letters last so they appear on top
     if (titleLettersTexture)
     {
         int winWidth  = 0;
         int winHeight = 0;
-        SDL_GetRendererOutputSize(renderer, &winWidth, &winHeight);
+        SDL_RenderGetLogicalSize(renderer, &winWidth, &winHeight);
+        if (winWidth == 0 || winHeight == 0)
+        {
+            SDL_GetRendererOutputSize(renderer, &winWidth, &winHeight);
+        }
 
         int texWidth  = 0;
         int texHeight = 0;
@@ -142,4 +208,31 @@ void TitleScreen::resetFadeIn()
     alpha       = 0.0f;
     fadedIn     = false;
     // Keeps music playing if already started
+}
+
+void TitleScreen::handleInput(SDL_Event& event)
+{
+    if (event.type == SDL_KEYDOWN)
+    {
+        switch (event.key.keysym.sym)
+        {
+            case SDLK_UP:
+            case SDLK_w:
+                // Move selection up (wrap around)
+                selectedIndex = (selectedIndex == 0) ? 1 : 0;
+                break;
+            case SDLK_DOWN:
+            case SDLK_s:
+                // Move selection down (wrap around)
+                selectedIndex = (selectedIndex == 1) ? 0 : 1;
+                break;
+            case SDLK_j:
+            case SDLK_k:
+            case SDLK_RETURN:
+                // Confirm selection only when "New Game" is selected
+                if (selectedIndex == 1)
+                    startGame = true;
+                break;
+        }
+    }
 }

@@ -123,6 +123,12 @@ class Game
     float fadeToBlackTimer     = 0.0f;
     float fadeToBlackDuration  = 1.0f;   // 1 second fade to black
 
+    // Title screen -> stage fade sequence
+    bool titleFadingOut     = false;  // Fading to black from title
+    bool titleFadingIn      = false;  // Fading in to stage after title
+    float titleFadeTimer    = 0.0f;   // Accumulated time for title fades
+    float titleFadeDuration = 2.0f;   // 2 seconds for out and 2 for in
+
     // Boss management (using interface pattern)
     std::unique_ptr<Boss> boss;     // Current boss instance
     bool bossHasSpawn     = false;  // True if boss spawn tile exists

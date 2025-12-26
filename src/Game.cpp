@@ -534,26 +534,53 @@ void Game::handleInput()
     // Handle title screen input
     if (showTitleScreen)
     {
-        input.handleEvents(running);
-        
-        // Any key or button to start the game
-        if (input.isPausePressed() || input.isJumping() || input.isAttacking() || 
-            input.isMovingLeft() || input.isMovingRight())
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
         {
-            showTitleScreen = false;
-            titleScreen.reset();
-            // Start stage background music now that intro/title sequence is complete
-            if (backgroundMusic && !Mix_PlayingMusic())
+            if (e.type == SDL_QUIT)
             {
-                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
-                {
-                    std::cerr << "Failed to start stage music: " << Mix_GetError() << "\n";
-                }
+                running = false;
             }
-            // Game will naturally proceed to world map or stage based on config
+            titleScreen.handleInput(e);
         }
         
-        input.resetFrameEvents();
+        // If user confirmed start (on New Game), begin a 2s fade-out
+        if (titleScreen.shouldStartGame() && !titleFadingOut && !titleFadingIn)
+        {
+            titleFadingOut  = true;
+            titleFadeTimer  = 0.0f;
+            // Stop any playing title music
+            Mix_HaltMusic();
+        }
+
+        // Advance title fade-out
+        if (titleFadingOut)
+        {
+            titleFadeTimer += (1.0f / 60.0f);  // progress roughly per frame; precise dt is in update
+            if (titleFadeTimer >= titleFadeDuration)
+            {
+                // Transition: leave title, load snowy-cliffs, then fade in
+                showTitleScreen = false;
+                titleScreen.reset();
+
+                // Clear gameplay state before loading stage
+                enemies.clear();
+                fireballs.clear();
+                explosions.clear();
+                powerUps.clear();
+                endAreas.clear();
+
+                config.showWorldMap = false;
+                stageName           = "snowy-cliffs";
+                loadAssets();
+
+                // Switch fades
+                titleFadingOut  = false;
+                titleFadingIn   = true;
+                titleFadeTimer  = 0.0f;
+            }
+        }
+
         return;
     }
     // Handle all SDL events and keyboard state
@@ -726,7 +753,7 @@ void Game::update(float dt)
         return;
     }
 
-    // Skip game updates while on title screen
+    // Skip game updates while on title screen (but let fade timers progress in render)
     if (showTitleScreen)
     {
         titleScreen.update(dt);
@@ -1413,6 +1440,31 @@ void Game::render()
     if (showTitleScreen)
     {
         titleScreen.render(renderer);
+        // Overlay fade when starting new game from title
+        int lw = 0, lh = 0;
+        SDL_RenderGetLogicalSize(renderer, &lw, &lh);
+        if (lw == 0 || lh == 0)
+            SDL_GetRendererOutputSize(renderer, &lw, &lh);
+        if (titleFadingOut)
+        {
+            float t     = std::min(titleFadeTimer / titleFadeDuration, 1.0f);
+            Uint8 alpha = static_cast<Uint8>(255 * t);  // clear -> black
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+            SDL_Rect full{0, 0, lw, lh};
+            SDL_RenderFillRect(renderer, &full);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        }
+        else if (titleFadingIn)
+        {
+            float t     = std::min(titleFadeTimer / titleFadeDuration, 1.0f);
+            Uint8 alpha = static_cast<Uint8>(255 * (1.0f - t));  // black -> clear
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+            SDL_Rect full{0, 0, lw, lh};
+            SDL_RenderFillRect(renderer, &full);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        }
         SDL_RenderPresent(renderer);
         return;
     }
@@ -1705,6 +1757,25 @@ void Game::render()
         SDL_Rect full{0, 0, camera.width, camera.height};
         SDL_RenderFillRect(renderer, &full);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
+
+    // Title fade-in overlay after leaving title
+    if (titleFadingIn)
+    {
+        float t     = std::min(titleFadeTimer / titleFadeDuration, 1.0f);
+        Uint8 alpha = static_cast<Uint8>(255 * (1.0f - t));  // black -> clear
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+        SDL_Rect full{0, 0, camera.width, camera.height};
+        SDL_RenderFillRect(renderer, &full);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+        // Progress title fade-in; complete after duration
+        titleFadeTimer += (1.0f / 60.0f);
+        if (titleFadeTimer >= titleFadeDuration)
+        {
+            titleFadingIn  = false;
+            titleFadeTimer = 0.0f;
+        }
     }
 
     // White composite overlay during boss death temporarily disabled

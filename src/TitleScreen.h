@@ -24,8 +24,14 @@ class TitleScreen
     // Start the title screen (play music, show screen)
     void start();
 
+    // Handle input events for menu navigation
+    void handleInput(SDL_Event& event);
+
     // Check if player wants to start the game
     bool shouldStartGame() const { return startGame; }
+
+    // Check if player selected continue
+    bool shouldContinue() const { return selectedIndex == 0; }
 
     // Reset the title screen state
     void reset();
@@ -36,6 +42,8 @@ class TitleScreen
    private:
     SDL_Texture* backgroundTexture = nullptr;
     SDL_Texture* titleLettersTexture = nullptr;
+    SDL_Texture* newGameTexture = nullptr;
+    SDL_Texture* continueTexture = nullptr;
     Mix_Music* titleMusic          = nullptr;
 
     float elapsedTime = 0.0f;
@@ -43,6 +51,9 @@ class TitleScreen
     bool startGame    = false;
     bool musicStarted = false;
     bool fadedIn      = false;
+
+    // Menu selection: 0 = continue, 1 = new game
+    int selectedIndex = 1;  // Start at new_game
 
     static constexpr float FADE_IN_DURATION = 3.0f;  // 3 seconds fade-in
 };
