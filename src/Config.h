@@ -7,6 +7,7 @@ struct Config
 {
     // Stage selection and assets
     std::string stageName = "snowy-cliffs";   // default stage folder
+    bool stageSpecified   = false;             // true when --stage is provided
     std::string assetPath = "../../assets/";  // base path to assets
     std::string mapPath;                      // optional explicit map.json path
 
@@ -23,6 +24,9 @@ struct Config
     bool showWorldMap     = false;  // start on world map screen
     bool worldMapDebug    = false;  // draw target markers on world map
     bool enableClimbSkill = false;  // enable player climbing ability (dev option)
+
+    // Element selection (dev): "none" (default), "water"
+    std::string startElement = "none";
 };
 
 // Parse command-line arguments into a Config.
@@ -36,4 +40,5 @@ struct Config
 //   --music-volume N
 //   --pause-volume N
 //   --enable-climb (dev: enable climbing skill)
+//   --element NAME (dev: start with element; supports "water")
 Config parseArgs(int argc, char* argv[]);

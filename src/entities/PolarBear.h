@@ -23,6 +23,14 @@ class Attack;
 class PolarBear
 {
    public:
+    enum class Element
+    {
+        None,
+        Water,
+        Fire,
+        Earth,
+        Wind
+    };
     // Position in world space.
     float x, y;
     // Velocity in world space.
@@ -39,6 +47,11 @@ class PolarBear
     SDL_Texture* attackTexture = nullptr;  // Attack animation texture.
     SDL_Texture* slashTexture  = nullptr;  // Textured slash effect for attacks.
     SDL_Texture* climbTexture  = nullptr;  // Climb animation texture.
+
+    // Elemental variants (currently water)
+    SDL_Texture* waterWalkTexture = nullptr;
+    SDL_Texture* waterJumpTexture = nullptr;
+    SDL_Texture* waterSwimTexture = nullptr;
 
     // Sprite dimensions (pixels).
     int spriteWidth  = 64;
@@ -115,6 +128,39 @@ class PolarBear
     // Horizontal input intent (-1, 0, 1) captured each frame
     float moveIntent = 0.0f;
 
+    // Elemental state
+    Element element = Element::None;
+
+    // Baseline (non-element) dimensions/frames captured on first setElement call
+    int baseWalkWidth   = 0;
+    int baseWalkHeight  = 0;
+    int baseJumpWidth   = 0;
+    int baseJumpHeight  = 0;
+    int baseNumFrames   = 0;
+    int baseJumpFrames  = 0;
+
+    // Water / swimming state
+    bool inWater     = false;
+    bool swimming    = false;
+    bool wasSwimming = false;
+    bool justExitedWater = false;
+    bool swimPressed = false;
+    float swimUpSpeed   = 140.0f;
+    float swimSinkSpeed = 80.0f;
+    float swimRunSpeed  = 70.0f;
+
+    // Frame metadata for water variants
+    int waterWalkFrames = 4;
+    int waterJumpFrames = 4;
+    int waterSwimFrames = 11;
+    int waterWalkWidth  = 54;
+    int waterWalkHeight = 35;
+    int waterJumpWidth  = 57;
+    int waterJumpHeight = 37;
+    int waterSwimWidth  = 54;
+    int waterSwimHeight = 36;
+    float swimFrameTime = 0.1f;
+
     // Takes damage and triggers the damage animation and invulnerability period.
     void takeDamage();
 
@@ -137,6 +183,20 @@ class PolarBear
 
     // Loads the climb animation sprite sheet from a PNG file.
     void loadClimbTexture(SDL_Renderer* renderer, const std::string& filename);
+
+    // Load water-specific textures
+    void loadWaterWalkTexture(SDL_Renderer* renderer, const std::string& filename);
+    void loadWaterJumpTexture(SDL_Renderer* renderer, const std::string& filename);
+    void loadWaterSwimTexture(SDL_Renderer* renderer, const std::string& filename);
+
+    // Element helpers
+    void setElement(Element e);
+    bool isWaterEquipped() const { return element == Element::Water; }
+
+    // Water detection and swimming control
+    int waterCoverageCount(const TileMap& map) const;
+    void setSwimmingState(bool inWater, bool swimButtonPressed);
+    bool isSwimming() const { return swimming; }
 
     // Initiates a slash attack.
     void startAttack();

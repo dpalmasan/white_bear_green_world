@@ -126,6 +126,151 @@ void PolarBear::loadClimbTexture(SDL_Renderer* renderer, const std::string& file
     }
 }
 
+void PolarBear::loadWaterWalkTexture(SDL_Renderer* renderer, const std::string& filename)
+{
+    SDL_Surface* surface = IMG_Load(filename.c_str());
+    if (!surface)
+    {
+        std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        return;
+    }
+
+    waterWalkTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!waterWalkTexture)
+    {
+        std::cerr << "Failed to create water walk texture: " << SDL_GetError() << "\n";
+    }
+}
+
+void PolarBear::loadWaterJumpTexture(SDL_Renderer* renderer, const std::string& filename)
+{
+    SDL_Surface* surface = IMG_Load(filename.c_str());
+    if (!surface)
+    {
+        std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        return;
+    }
+
+    waterJumpTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!waterJumpTexture)
+    {
+        std::cerr << "Failed to create water jump texture: " << SDL_GetError() << "\n";
+    }
+}
+
+void PolarBear::loadWaterSwimTexture(SDL_Renderer* renderer, const std::string& filename)
+{
+    SDL_Surface* surface = IMG_Load(filename.c_str());
+    if (!surface)
+    {
+        std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        return;
+    }
+
+    waterSwimTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!waterSwimTexture)
+    {
+        std::cerr << "Failed to create water swim texture: " << SDL_GetError() << "\n";
+    }
+}
+
+void PolarBear::setElement(Element e)
+{
+    // Capture baseline once (non-element frames/dimensions)
+    if (baseWalkWidth == 0)
+    {
+        baseWalkWidth  = spriteWidth;
+        baseWalkHeight = spriteHeight;
+        baseNumFrames  = numFrames;
+        baseJumpFrames = jumpFrames;
+        // Default jump uses spriteWidth/Height; allow override later if needed
+        baseJumpWidth  = spriteWidth;
+        baseJumpHeight = spriteHeight;
+    }
+
+    element = e;
+
+    if (element == Element::Water)
+    {
+        // Use water variants when available
+        if (waterWalkTexture)
+            texture = waterWalkTexture;
+        if (waterJumpTexture)
+            jumpTexture = waterJumpTexture;
+
+        // Set sprite box to encompass the largest water frame (jump height)
+        spriteWidth  = waterJumpWidth;
+        spriteHeight = waterJumpHeight;
+        numFrames    = waterWalkFrames;
+        jumpFrames   = waterJumpFrames;
+
+        // Reset animation state
+        frame      = 0;
+        frameTimer = 0.0f;
+    }
+    else
+    {
+        // Revert to baseline non-element dimensions/textures
+        spriteWidth  = (baseWalkWidth > 0) ? baseWalkWidth : spriteWidth;
+        spriteHeight = (baseWalkHeight > 0) ? baseWalkHeight : spriteHeight;
+        numFrames    = (baseNumFrames > 0) ? baseNumFrames : numFrames;
+        jumpFrames   = (baseJumpFrames > 0) ? baseJumpFrames : jumpFrames;
+        // Keep texture/jumpTexture as originally loaded defaults
+        frame      = 0;
+        frameTimer = 0.0f;
+    }
+}
+
+int PolarBear::waterCoverageCount(const TileMap& map) const
+{
+    // Sample center and four corners slightly inset; require 4/5 samples in water (~80%).
+    const float inset = 2.0f;
+    float left        = x + inset;
+    float right       = x + spriteWidth - inset;
+    float top         = y + inset;
+    float bottom      = y + spriteHeight - inset;
+    float cx          = x + spriteWidth * 0.5f;
+    float cy          = y + spriteHeight * 0.5f;
+
+    int waterCount = 0;
+    waterCount += map.isWaterAtWorld(left, top) ? 1 : 0;
+    waterCount += map.isWaterAtWorld(right, top) ? 1 : 0;
+    waterCount += map.isWaterAtWorld(left, bottom) ? 1 : 0;
+    waterCount += map.isWaterAtWorld(right, bottom) ? 1 : 0;
+    waterCount += map.isWaterAtWorld(cx, cy) ? 1 : 0;
+
+    return waterCount;  // up to 5 samples
+}
+
+void PolarBear::setSwimmingState(bool inWaterNow, bool swimButtonPressed)
+{
+    wasSwimming = swimming;
+    inWater     = inWaterNow;
+    swimPressed = swimButtonPressed;
+
+    if (isWaterEquipped() && inWater)
+    {
+        swimming = true;
+        if (!wasSwimming)
+        {
+            frame      = 0;
+            frameTimer = 0.0f;
+        }
+    }
+    else
+    {
+        if (wasSwimming)
+            justExitedWater = true;
+        swimming = false;
+    }
+}
+
 void PolarBear::startAttack()
 {
     if (!isAttacking && !currentAttack)
@@ -185,8 +330,24 @@ void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
 
 void PolarBear::update(float dt, const TileMap& map)
 {
+    const bool useSwimming = swimming && isWaterEquipped();
+
+    // If we just exited water at the surface, give an upward impulse to breach
+    // Only jump out if we're near the top of water (not at the bottom)
+    if (justExitedWater && !onGround)
+    {
+        vy              = -336.0f;
+        onGround        = false;
+        justExitedWater = false;
+    }
+    else if (justExitedWater)
+    {
+        // Clear flag if we're on ground (don't jump from bottom)
+        justExitedWater = false;
+    }
+
     // --- Climbing check: if climbing, override gravity and vertical velocity ---
-    if (isClimbing)
+    if (!useSwimming && isClimbing)
     {
         // No gravity while actively climbing
         vy = climbIntent * climbSpeed;
@@ -244,16 +405,37 @@ void PolarBear::update(float dt, const TileMap& map)
             }
         }
     }
-    else
+    else if (!useSwimming)
     {
         // --- Apply gravity ---
         const float GRAVITY = 1000.0f;
         vy += GRAVITY * dt;
     }
+    else
+    {
+        // Swimming: override gravity with swim rise/sink and set horizontal swim speed
+        isClimbing = false;
+        if (onGround && !swimPressed)
+        {
+            // Resting at bottom: completely lock velocity
+            vy = 0.0f;
+            vx = 0.0f;
+        }
+        else if (swimPressed)
+        {
+            vy = -swimUpSpeed;
+            vx = moveIntent * swimRunSpeed;
+        }
+        else
+        {
+            vy = swimSinkSpeed;
+            vx = moveIntent * swimRunSpeed;
+        }
+    }
 
     // --- Horizontal intent -> velocity (supports slippery surfaces) ---
     // Skip applying moveIntent while climbing (vx already set to 0 above)
-    if (!isClimbing)
+    if (!isClimbing && !useSwimming)
     {
         // Detect slipperiness at the feet (one pixel above the sole to stay within tile)
         // Sample at the tile directly beneath the feet (landing puts feet exactly at tile top)
@@ -343,54 +525,98 @@ void PolarBear::update(float dt, const TileMap& map)
     }
 
     // --- Vertical movement with collision ---
-    y += vy * dt;
-
-    onGround = false;
-
-    // Check vertical collisions (top and bottom edges) with 30% threshold
-    const int vSamples = 10;
-    int vCollisions    = 0;
-
-    for (int i = 0; i < vSamples; ++i)
+    // When swimming, we need to detect solid ground even through water tiles
+    if (useSwimming && vy >= 0)
     {
-        int w = (i * spriteWidth) / (vSamples - 1);
-        if (w >= spriteWidth)
-            w = spriteWidth - 1;
-
-        if (vy > 0)
+        // Check if we're touching ground while sinking
+        const int vSamples = 10;
+        int vCollisions    = 0;
+        
+        for (int i = 0; i < vSamples; ++i)
         {
-            // Moving down - check bottom edge for regular collisions and down-only platforms
-            if (map.isSolidAtWorld(x + w, y + spriteHeight, vy) ||
+            int w = (i * spriteWidth) / (vSamples - 1);
+            if (w >= spriteWidth)
+                w = spriteWidth - 1;
+            
+            if (map.isSolidAtWorld(x + w, y + spriteHeight, 1.0f) ||
                 map.isCollisionDownOnlyAtWorld(x + w, y + spriteHeight))
             {
                 vCollisions++;
             }
         }
-        else if (vy < 0)
+        
+        if (vCollisions >= vSamples * 0.2f)
         {
-            // Moving up - check top edge
-            if (map.isSolidAtWorld(x + w, y))
+            onGround = true;
+        }
+        else
+        {
+            onGround = false;
+        }
+    }
+    
+    bool restingInWater = useSwimming && onGround && !swimPressed;
+
+    if (!restingInWater)
+    {
+        y += vy * dt;
+
+        if (!useSwimming)
+            onGround = false;
+
+        // Check vertical collisions (top and bottom edges) with 30% threshold
+        const int vSamples = 10;
+        int vCollisions    = 0;
+
+        for (int i = 0; i < vSamples; ++i)
+        {
+            int w = (i * spriteWidth) / (vSamples - 1);
+            if (w >= spriteWidth)
+                w = spriteWidth - 1;
+
+            if (vy > 0)
             {
-                vCollisions++;
+                // Moving down - check bottom edge for regular collisions and down-only platforms
+                if (map.isSolidAtWorld(x + w, y + spriteHeight, vy) ||
+                    map.isCollisionDownOnlyAtWorld(x + w, y + spriteHeight))
+                {
+                    vCollisions++;
+                }
+            }
+            else if (vy < 0)
+            {
+                // Moving up - check top edge
+                if (map.isSolidAtWorld(x + w, y))
+                {
+                    vCollisions++;
+                }
+            }
+        }
+
+        if (vCollisions >= vSamples * 0.2f)
+        {
+            if (vy > 0)
+            {
+                y  = (static_cast<int>(y + spriteHeight) / map.tileSize) * map.tileSize - spriteHeight;
+                vy = 0;
+                if (!useSwimming)
+                    onGround = true;
+                // Clear knockback state when landing
+                isKnockedBack = false;
+            }
+            else if (vy < 0)
+            {
+                y  = (static_cast<int>(y) / map.tileSize + 1) * map.tileSize;
+                vy = 0;
             }
         }
     }
-
-    if (vCollisions >= vSamples * 0.2f)
+    else
     {
-        if (vy > 0)
-        {
-            y  = (static_cast<int>(y + spriteHeight) / map.tileSize) * map.tileSize - spriteHeight;
-            vy = 0;
-            onGround = true;
-            // Clear knockback state when landing
-            isKnockedBack = false;
-        }
-        else if (vy < 0)
-        {
-            y  = (static_cast<int>(y) / map.tileSize + 1) * map.tileSize;
-            vy = 0;
-        }
+        // Resting at bottom in water: lock position completely
+        vy = 0.0f;
+        vx = 0.0f;
+        // No position update - stay completely still
     }
 
     // --- Update ledge mount timer ---
@@ -437,7 +663,25 @@ void PolarBear::update(float dt, const TileMap& map)
     }
 
     // --- Animation ---
-    if (isClimbing)
+    if (useSwimming)
+    {
+        // When resting on the bottom, stay idle (no swim animation)
+        if (onGround)
+        {
+            frame      = 0;
+            frameTimer = 0.0f;
+        }
+        else
+        {
+            frameTimer += dt;
+            if (frameTimer >= swimFrameTime)
+            {
+                frameTimer = 0.0f;
+                frame      = (frame + 1) % std::max(1, waterSwimFrames);
+            }
+        }
+    }
+    else if (isClimbing)
     {
         // Animate climb when moving vertically; otherwise show first frame
         if (std::abs(climbIntent) > 0.0f)
@@ -527,12 +771,19 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
     }
 
     // Determine which texture and frame to use
+    const bool useSwimming = swimming && isWaterEquipped();
     SDL_Texture* currentTexture = texture;
     int currentFrame            = frame;
     int currentNumFrames        = numFrames;
     int currentWidth            = spriteWidth;
     int currentHeight           = spriteHeight;
     double rotationAngle        = 0.0;
+    if (isWaterEquipped())
+    {
+        currentNumFrames = waterWalkFrames;
+        currentWidth     = waterWalkWidth;
+        currentHeight    = waterWalkHeight;
+    }
 
     if (isDamaged && jumpTexture)
     {
@@ -565,6 +816,14 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
             currentFrame = 0;
         }
     }
+    else if (useSwimming && waterSwimTexture)
+    {
+        currentTexture   = waterSwimTexture;
+        currentNumFrames = waterSwimFrames;
+        currentWidth     = waterSwimWidth;
+        currentHeight    = waterSwimHeight;
+        currentFrame     = frame;
+    }
     else if (isClimbing && climbTexture)
     {
         // Use climb animation when climbing
@@ -579,6 +838,11 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
         // Use jump animation when airborne
         currentTexture   = jumpTexture;
         currentNumFrames = jumpFrames;
+        if (isWaterEquipped())
+        {
+            currentWidth  = waterJumpWidth;
+            currentHeight = waterJumpHeight;
+        }
 
         // Map vertical velocity to frame with specific ranges:
         // Ascending (vy < 0): frames 1-3
@@ -610,6 +874,12 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
 
     if (!currentTexture)
         return;
+
+    // Clamp frame to available frames (handles short sheets like 4-frame water jump)
+    if (currentNumFrames > 0)
+    {
+        currentFrame = std::max(0, std::min(currentFrame, currentNumFrames - 1));
+    }
 
     SDL_Rect src;
     src.x = currentFrame * currentWidth;  // current animation frame

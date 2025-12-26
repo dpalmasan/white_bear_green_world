@@ -40,7 +40,8 @@ Config parseArgs(int argc, char* argv[])
         std::string arg = argv[i];
         if (arg == "--stage" && i + 1 < argc)
         {
-            cfg.stageName = argv[++i];
+            cfg.stageName      = argv[++i];
+            cfg.stageSpecified = true;
         }
         else if (arg == "--asset-path" && i + 1 < argc)
         {
@@ -97,6 +98,10 @@ Config parseArgs(int argc, char* argv[])
         else if (arg == "--enable-climb" || arg == "--climb")
         {
             cfg.enableClimbSkill = true;
+        }
+        else if (arg == "--element" && i + 1 < argc)
+        {
+            cfg.startElement = argv[++i];
         }
     }
 

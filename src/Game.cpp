@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <iostream>
 
 // Initializes SDL, creates the window and renderer.
@@ -207,6 +208,21 @@ void Game::loadAssets()
     polarBear.loadJumpTexture(renderer, config.assetPath + "bear-jump.png");
     polarBear.loadAttackTexture(renderer, config.assetPath + "bear-attack.png");
     polarBear.loadSlashTexture(renderer, config.assetPath + "slash.png");
+
+    // Water element textures (dev selectable)
+    polarBear.loadWaterWalkTexture(renderer, config.assetPath + "polar-bear-water-walking.png");
+    polarBear.loadWaterJumpTexture(renderer, config.assetPath + "polar-bear-water-jump.png");
+    polarBear.loadWaterSwimTexture(renderer, config.assetPath + "polar-bear-water-swimming.png");
+    // Default to non-element; allow dev override via --element
+    polarBear.setElement(PolarBear::Element::None);
+    std::string elem = config.startElement;
+    std::transform(elem.begin(), elem.end(), elem.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    if (elem == "water")
+    {
+        polarBear.setElement(PolarBear::Element::Water);
+    }
     // Enable climb skill and texture if configured
     polarBear.canClimb = config.enableClimbSkill;
     if (polarBear.canClimb)
@@ -679,20 +695,28 @@ void Game::handleInput()
         }
     }
 
-    // Jump (J key)
-    if (input.isJumping())
+    // Water detection with hysteresis: require 4/5 samples to enter, 3/5 to stay
+    int waterSamples  = polarBear.waterCoverageCount(map);
+    bool bearInWater = waterSamples >= (polarBear.isSwimming() ? 3 : 4);
+    polarBear.setSwimmingState(bearInWater, input.isJumpHeld());
+
+    // Jump (J key) or swim when equipped with water
+    if (!polarBear.isSwimming())
     {
-        if (polarBear.onGround)
+        if (input.isJumping())
         {
-            polarBear.vy       = -336.0f;
-            polarBear.onGround = false;
-        }
-        else if (polarBear.isClimbing)
-        {
-            polarBear.isClimbing  = false;
-            polarBear.climbIntent = 0.0f;
-            if (polarBear.vy < 40.0f)
-                polarBear.vy = 40.0f;
+            if (polarBear.onGround)
+            {
+                polarBear.vy       = -336.0f;
+                polarBear.onGround = false;
+            }
+            else if (polarBear.isClimbing)
+            {
+                polarBear.isClimbing  = false;
+                polarBear.climbIntent = 0.0f;
+                if (polarBear.vy < 40.0f)
+                    polarBear.vy = 40.0f;
+            }
         }
     }
 

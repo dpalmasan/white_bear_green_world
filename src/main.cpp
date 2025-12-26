@@ -23,6 +23,13 @@ int main(int argc, char* argv[])
     game.windowHeight = cfg.windowHeight;
     game.cameraZoom   = cfg.cameraZoom;
 
+    // If a stage was specified explicitly, skip intro/title and load directly
+    if (cfg.stageSpecified)
+    {
+        game.showIntroCutscene = false;
+        game.showTitleScreen   = false;
+    }
+
     // Initialize SDL, create window and renderer.
     if (!game.init())
     {

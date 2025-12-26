@@ -71,6 +71,11 @@ bool TileMap::loadFromJSON(const std::string& filename)
                 {
                     tile.climbable = attrs["climbable"];
                 }
+                // Check for water attribute
+                if (attrs.contains("is_water"))
+                {
+                    tile.isWater = attrs["is_water"].get<bool>();
+                }
                 // Check for enemy attribute
                 if (attrs.contains("enemy"))
                 {
@@ -197,6 +202,10 @@ bool TileMap::isSolidAtWorld(float worldX, float worldY, float vy) const
                     tile.endOfArea)
                     continue;
 
+                // Water tiles are non-blocking
+                if (tile.isWater)
+                    continue;
+
                 // If tile is down-only, treat it as collision regardless of layer collider flag
                 // Only collide when actively falling (vy > 0)
                 if (tile.collision_down_only)
@@ -305,6 +314,38 @@ bool TileMap::isClimbableAtWorld(float worldX, float worldY) const
                     continue;
 
                 if (tile.climbable)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+// Check if a world position is inside a water tile
+bool TileMap::isWaterAtWorld(float worldX, float worldY) const
+{
+    if (worldX < 0 || worldY < 0)
+        return false;
+
+    int tileX = static_cast<int>(worldX) / tileSize;
+    int tileY = static_cast<int>(worldY) / tileSize;
+
+    if (tileX < 0 || tileX >= width || tileY < 0 || tileY >= height)
+        return false;
+
+    for (const auto& layer : layers)
+    {
+        for (const auto& tile : layer.tiles)
+        {
+            if (tile.x == tileX && tile.y == tileY)
+            {
+                // Marker tiles should not affect water checks
+                if (!tile.enemyType.empty() || tile.polarBearSpawn || !tile.powerUp.empty() ||
+                    tile.endOfArea)
+                    continue;
+
+                if (tile.isWater)
                     return true;
             }
         }

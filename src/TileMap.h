@@ -16,6 +16,7 @@ struct Tile
     bool collision_down_only = false;  // Only collide from above
     bool slippery            = false;  // Slippery surface when true
     bool climbable           = false;  // True if the tile can be climbed
+    bool isWater             = false;  // Water tile for swimming mechanics
     std::string powerUp;               // Power-up type (e.g., "heart"), empty if none
     bool polarBearSpawn = false;       // Spawn marker for the player
     std::string enemyType;  // Enemy type if this is a spawn tile (e.g., "arachnoid", "robot")
@@ -64,6 +65,9 @@ class TileMap
 
     // Check if a world-space position is on a climbable tile
     bool isClimbableAtWorld(float worldX, float worldY) const;
+
+    // Check if a world-space position is inside a water tile
+    bool isWaterAtWorld(float worldX, float worldY) const;
 
     // Get all tiles marked as enemy spawn points
     std::vector<const Tile*> getEnemySpawnTiles() const;

@@ -24,6 +24,7 @@ public:
     bool isClimbingUp() const { return climbUp; }
     bool isClimbingDown() const { return climbDown; }
     bool isJumping() const { return jumpPressed; }
+    bool isJumpHeld() const { return jumpButtonHeld; }
     bool isAttacking() const { return attackPressed; }
     bool isPausePressed() const { return pausePressed; }
     bool isQuitPressed() const { return quitPressed; }
