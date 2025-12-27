@@ -38,7 +38,8 @@ TitleScreen::~TitleScreen()
 bool TitleScreen::load(SDL_Renderer* renderer, const std::string& assetPath)
 {
     // Load background image
-    backgroundTexture = IMG_LoadTexture(renderer, (assetPath + "title-screen.png").c_str());
+    backgroundTexture =
+        IMG_LoadTexture(renderer, (assetPath + "images/title_screen/title-screen.png").c_str());
     if (!backgroundTexture)
     {
         std::cerr << "Failed to load title-screen.png: " << IMG_GetError() << "\n";
@@ -46,7 +47,8 @@ bool TitleScreen::load(SDL_Renderer* renderer, const std::string& assetPath)
     }
 
     // Load title letters image
-    titleLettersTexture = IMG_LoadTexture(renderer, (assetPath + "title-letters.png").c_str());
+    titleLettersTexture =
+        IMG_LoadTexture(renderer, (assetPath + "images/title_screen/title-letters.png").c_str());
     if (!titleLettersTexture)
     {
         std::cerr << "Failed to load title-letters.png: " << IMG_GetError() << "\n";
@@ -54,14 +56,16 @@ bool TitleScreen::load(SDL_Renderer* renderer, const std::string& assetPath)
     }
 
     // Load menu option images
-    newGameTexture = IMG_LoadTexture(renderer, (assetPath + "new_game.png").c_str());
+    newGameTexture =
+        IMG_LoadTexture(renderer, (assetPath + "images/title_screen/new_game.png").c_str());
     if (!newGameTexture)
     {
         std::cerr << "Failed to load new_game.png: " << IMG_GetError() << "\n";
         return false;
     }
 
-    continueTexture = IMG_LoadTexture(renderer, (assetPath + "continue.png").c_str());
+    continueTexture =
+        IMG_LoadTexture(renderer, (assetPath + "images/title_screen/continue.png").c_str());
     if (!continueTexture)
     {
         std::cerr << "Failed to load continue.png: " << IMG_GetError() << "\n";

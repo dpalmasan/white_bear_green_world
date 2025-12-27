@@ -87,8 +87,9 @@ void Game::loadAssets()
 
         if (!worldMap.load(renderer, config.assetPath))
         {
-            std::cerr << "Failed to load world map assets (world-map.png, map-cursor.png) from '"
-                      << config.assetPath << "'\n";
+            std::cerr << "Failed to load world map assets from '" << config.assetPath
+                      << "images/backgrounds/world-map.png' and '" << config.assetPath
+                      << "images/icons/map-cursor.png'\n";
         }
         worldMap.debug = config.worldMapDebug;
         
@@ -149,6 +150,14 @@ void Game::loadAssets()
         return;
     }
 
+    const std::string imagesPath       = config.assetPath + "images/";
+    const std::string polarPath        = imagesPath + "polar_bear/";
+    const std::string enemiesPath      = imagesPath + "enemies/";
+    const std::string bossImagesPath   = imagesPath + "bosses/";
+    const std::string attacksPath      = imagesPath + "attacks/";
+    const std::string backgroundsPath  = imagesPath + "backgrounds/";
+    const std::string iconsPath        = imagesPath + "icons/";
+
     // Detect which enemies/bosses exist in the map so we only load the textures we need
     const auto enemySpawnTiles = map.getEnemySpawnTiles();
     const auto bossSpawnTiles  = map.getBossTiles();
@@ -178,53 +187,55 @@ void Game::loadAssets()
     if (hasRobotEnemy)
     {
         robotAttackTexture =
-            IMG_LoadTexture(renderer, (config.assetPath + "robot-attack.png").c_str());
+            IMG_LoadTexture(renderer, (enemiesPath + "robot/robot-attack.png").c_str());
         if (!robotAttackTexture)
             std::cerr << "Failed to load robot-attack.png: " << IMG_GetError() << "\n";
 
-        roboFireballTexture =
-            IMG_LoadTexture(renderer, (config.assetPath + "robo-cannon.png").c_str());
+        roboFireballTexture = IMG_LoadTexture(renderer, (attacksPath + "robo-cannon.png").c_str());
         if (!roboFireballTexture)
             std::cerr << "Failed to load robo-cannon.png: " << IMG_GetError() << "\n";
     }
 
     if (hasFrenzyWolfEnemy)
     {
-        frenzyWolfIdleTex =
-            IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-idle.png").c_str());
+        frenzyWolfIdleTex = IMG_LoadTexture(renderer,
+                                           (enemiesPath + "frenzy_wolf/frenzy_wolf-idle.png")
+                                               .c_str());
         if (!frenzyWolfIdleTex)
             std::cerr << "Failed to load frenzy_wolf-idle.png: " << IMG_GetError() << "\n";
-        frenzyWolfRunTex =
-            IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-attack.png").c_str());
+        frenzyWolfRunTex = IMG_LoadTexture(renderer,
+                                          (enemiesPath + "frenzy_wolf/frenzy_wolf-attack.png")
+                                              .c_str());
         if (!frenzyWolfRunTex)
             std::cerr << "Failed to load frenzy_wolf-attack.png: " << IMG_GetError() << "\n";
     }
 
     if (hasArachnoidEnemy)
     {
-        arachnoidTexture = IMG_LoadTexture(renderer, (config.assetPath + "arachnoid.png").c_str());
+        arachnoidTexture =
+            IMG_LoadTexture(renderer, (enemiesPath + "arachnoid/arachnoid.png").c_str());
         if (!arachnoidTexture)
             std::cerr << "Failed to load arachnoid.png: " << IMG_GetError() << "\n";
     }
 
     if (hasSnowRobotBoss)
     {
+        const std::string snowBossPath = bossImagesPath + "snow_robot/";
         bossSnowRobotTex =
-            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-deactivated.png").c_str());
+            IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-deactivated.png").c_str());
         if (!bossSnowRobotTex)
             std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError()
                       << "\n";
         bossRobotAttackTex =
-            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-attack.png").c_str());
+            IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-attack.png").c_str());
         if (!bossRobotAttackTex)
             std::cerr << "Failed to load boss-robot-attack.png: " << IMG_GetError() << "\n";
         bossRobotDashTex =
-            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-dash.png").c_str());
+            IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-dash.png").c_str());
         if (!bossRobotDashTex)
             std::cerr << "Failed to load boss-robot-dash.png: " << IMG_GetError() << "\n";
         bossRobotVulnerableTex =
-            IMG_LoadTexture(renderer,
-                            (config.assetPath + "boss-robot-vulnerable.png").c_str());
+            IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-vulnerable.png").c_str());
         if (!bossRobotVulnerableTex)
             std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError()
                       << "\n";
@@ -254,15 +265,15 @@ void Game::loadAssets()
     polarBear.spriteHeight = 40;
     polarBear.numFrames    = 4;
     polarBear.frameTime    = 0.15f;
-    polarBear.loadTexture(renderer, config.assetPath + "bear.png");
-    polarBear.loadJumpTexture(renderer, config.assetPath + "bear-jump.png");
-    polarBear.loadAttackTexture(renderer, config.assetPath + "bear-attack.png");
-    polarBear.loadSlashTexture(renderer, config.assetPath + "slash.png");
+    polarBear.loadTexture(renderer, polarPath + "bear.png");
+    polarBear.loadJumpTexture(renderer, polarPath + "bear-jump.png");
+    polarBear.loadAttackTexture(renderer, polarPath + "bear-attack.png");
+    polarBear.loadSlashTexture(renderer, attacksPath + "slash.png");
 
     // Water element textures (dev selectable)
-    polarBear.loadWaterWalkTexture(renderer, config.assetPath + "polar-bear-water-walking.png");
-    polarBear.loadWaterJumpTexture(renderer, config.assetPath + "polar-bear-water-jump.png");
-    polarBear.loadWaterSwimTexture(renderer, config.assetPath + "polar-bear-water-swimming.png");
+    polarBear.loadWaterWalkTexture(renderer, polarPath + "polar-bear-water-walking.png");
+    polarBear.loadWaterJumpTexture(renderer, polarPath + "polar-bear-water-jump.png");
+    polarBear.loadWaterSwimTexture(renderer, polarPath + "polar-bear-water-swimming.png");
     // Default to non-element; allow dev override via --element
     polarBear.setElement(PolarBear::Element::None);
     std::string elem = config.startElement;
@@ -277,7 +288,7 @@ void Game::loadAssets()
     polarBear.canClimb = config.enableClimbSkill;
     if (polarBear.canClimb)
     {
-        polarBear.loadClimbTexture(renderer, config.assetPath + std::string("bear-climbing.png"));
+        polarBear.loadClimbTexture(renderer, polarPath + std::string("bear-climbing.png"));
     }
 
     // Set initial player position and state. If a polar_bear_spawn marker exists, use it.
@@ -314,7 +325,7 @@ void Game::loadAssets()
 
     // Load HUD heart texture (single-frame). We'll darken it for empty hearts.
     {
-        SDL_Surface *hbSurf = IMG_Load((config.assetPath + "health_bar.png").c_str());
+        SDL_Surface *hbSurf = IMG_Load((iconsPath + "health_bar.png").c_str());
         if (hbSurf)
         {
             heartTexture = SDL_CreateTextureFromSurface(renderer, hbSurf);
@@ -341,7 +352,7 @@ void Game::loadAssets()
     }
 
     // Load background texture for the level
-    SDL_Surface *bgSurface = IMG_Load((config.assetPath + "background.png").c_str());
+    SDL_Surface *bgSurface = IMG_Load((backgroundsPath + "background.png").c_str());
     if (bgSurface)
     {
         backgroundTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -357,7 +368,7 @@ void Game::loadAssets()
     }
 
     // Load menu texture for pause screen
-    SDL_Surface *menuSurface = IMG_Load((config.assetPath + "menu.png").c_str());
+    SDL_Surface *menuSurface = IMG_Load((backgroundsPath + "menu.png").c_str());
     if (menuSurface)
     {
         menuTexture = SDL_CreateTextureFromSurface(renderer, menuSurface);
@@ -387,7 +398,7 @@ void Game::loadAssets()
             robo->y        = (tile->y + 1) * map.tileSize - robo->height - spawnOffset;
             robo->vy       = 0.0f;
             robo->onGround = false;  // Let physics handle landing
-            robo->loadTexture(renderer, config.assetPath + "robot-idle.png");
+            robo->loadTexture(renderer, enemiesPath + "robot/robot-idle.png");
 
             // Configure attack animation (6 frames, ~0.1s each)
             if (robotAttackTexture)

@@ -9,19 +9,19 @@ namespace
 {
 const StageInfo kSnowyCliffs{
     StageNames::SnowyCliffs,
-    StageNames::SnowyCliffs,
+    "levels/snowy-cliffs",
     "map.json",
     "spritesheet.png",
     "music/snowy_cliffs.ogg",  // backgroundMusic
     "",                        // bossMusic
-    "end_stage1_scene.png",    // endSceneTexture
+    "",                       // endSceneTexture (asset removed in cleaned layout)
     "music/is_there_hope.ogg", // endSceneMusic
     false                       // isBoss
 };
 
 const StageInfo kSnowyCliffsBoss{
     StageNames::SnowyCliffsBoss,
-    StageNames::SnowyCliffsBoss,
+    "levels/snowy-cliffs-boss",
     "map.json",
     "spritesheet.png",
     "",                       // backgroundMusic (handled by boss theme)

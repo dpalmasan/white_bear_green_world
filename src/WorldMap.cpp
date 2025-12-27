@@ -13,7 +13,8 @@ static float dot2(int ax, int ay, int bx, int by)
 bool WorldMap::load(SDL_Renderer* renderer, const std::string& assetPath)
 {
     // Load images
-    SDL_Surface* bgSurf = IMG_Load((assetPath + "world-map.png").c_str());
+    SDL_Surface* bgSurf =
+        IMG_Load((assetPath + "images/backgrounds/world-map.png").c_str());
     if (!bgSurf)
         return false;
     background = SDL_CreateTextureFromSurface(renderer, bgSurf);
@@ -21,7 +22,7 @@ bool WorldMap::load(SDL_Renderer* renderer, const std::string& assetPath)
     if (!background)
         return false;
 
-    SDL_Surface* curSurf = IMG_Load((assetPath + "map-cursor.png").c_str());
+    SDL_Surface* curSurf = IMG_Load((assetPath + "images/icons/map-cursor.png").c_str());
     if (!curSurf)
         return false;
     cursorTex = SDL_CreateTextureFromSurface(renderer, curSurf);

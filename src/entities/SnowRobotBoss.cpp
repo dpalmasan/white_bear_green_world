@@ -35,24 +35,27 @@ SnowRobotBoss::~SnowRobotBoss()
 
 void SnowRobotBoss::loadAssets(SDL_Renderer* renderer, const std::string& assetPath)
 {
-    introTexture = IMG_LoadTexture(renderer, (assetPath + "boss-robot-deactivated.png").c_str());
+    const std::string bossPath = assetPath + "images/bosses/snow_robot/";
+    const std::string attackPath = assetPath + "images/attacks/";
+
+    introTexture = IMG_LoadTexture(renderer, (bossPath + "boss-robot-deactivated.png").c_str());
     if (!introTexture)
         std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError() << "\n";
 
-    attackTexture = IMG_LoadTexture(renderer, (assetPath + "boss-robot-attack.png").c_str());
+    attackTexture = IMG_LoadTexture(renderer, (bossPath + "boss-robot-attack.png").c_str());
     if (!attackTexture)
         std::cerr << "Failed to load boss-robot-attack.png: " << IMG_GetError() << "\n";
 
-    dashTexture = IMG_LoadTexture(renderer, (assetPath + "boss-robot-dash.png").c_str());
+    dashTexture = IMG_LoadTexture(renderer, (bossPath + "boss-robot-dash.png").c_str());
     if (!dashTexture)
         std::cerr << "Failed to load boss-robot-dash.png: " << IMG_GetError() << "\n";
 
     vulnerableTexture =
-        IMG_LoadTexture(renderer, (assetPath + "boss-robot-vulnerable.png").c_str());
+        IMG_LoadTexture(renderer, (bossPath + "boss-robot-vulnerable.png").c_str());
     if (!vulnerableTexture)
         std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError() << "\n";
 
-    fireballTexture = IMG_LoadTexture(renderer, (assetPath + "robo-cannon.png").c_str());
+    fireballTexture = IMG_LoadTexture(renderer, (attackPath + "robo-cannon.png").c_str());
     if (!fireballTexture)
         std::cerr << "Failed to load robo-cannon.png: " << IMG_GetError() << "\n";
 
