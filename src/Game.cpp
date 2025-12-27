@@ -51,9 +51,9 @@ bool Game::init()
         return false;
     }
 
-    // Set logical render size to 640x640
+    // Set logical render size to 320x240
     // This allows the renderer to scale to any window size while maintaining aspect ratio
-    SDL_RenderSetLogicalSize(renderer, 640, 640);
+    SDL_RenderSetLogicalSize(renderer, 320, 240);
 
     // Initialize SDL_image for PNG loading support.
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))

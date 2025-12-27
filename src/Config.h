@@ -12,9 +12,9 @@ struct Config
     std::string mapPath;                      // optional explicit map.json path
 
     // Window and camera
-    int windowWidth  = 640;
-    int windowHeight = 640;
-    float cameraZoom = 2.0f;
+    int windowWidth  = 320;
+    int windowHeight = 240;
+    float cameraZoom = 1.0f;
 
     // Audio
     int musicVolume      = 96;  // 0-128

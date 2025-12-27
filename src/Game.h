@@ -48,9 +48,9 @@ class Game
     SDL_Renderer* renderer = nullptr;
 
     // Window dimensions and camera zoom.
-    int windowWidth  = 640;
-    int windowHeight = 640;
-    float cameraZoom = 2.0f;  // Render scale; camera view = window size / zoom
+    int windowWidth  = 320;
+    int windowHeight = 240;
+    float cameraZoom = 1.0f;  // Render scale; camera view = window size / zoom
 
     // Background texture for the current level.
     SDL_Texture* backgroundTexture = nullptr;
