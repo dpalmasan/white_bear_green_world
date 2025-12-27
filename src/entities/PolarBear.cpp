@@ -5,8 +5,13 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <typeinfo>
 
 #include "../actions/Attack.h"
+#include "movement/NormalMovementState.h"
+#include "movement/SwimmingMovementState.h"
+#include "movement/ClimbingMovementState.h"
+
 
 // Load the sprite sheet from a PNG file
 void PolarBear::loadTexture(SDL_Renderer* renderer, const std::string& filename)
@@ -319,6 +324,51 @@ void PolarBear::takeDamage()
     vy = jumpPower;  // Smaller jump upward
 }
 
+void PolarBear::transitionToMovementState(std::unique_ptr<MovementState> newState)
+{
+    if (currentMovementState)
+    {
+        currentMovementState->onExit(*this);
+    }
+    currentMovementState = std::move(newState);
+    if (currentMovementState)
+    {
+        currentMovementState->onEnter(*this);
+    }
+}
+
+void PolarBear::updateMovementState()
+{
+    // Determine which movement state we should be in
+    
+    // Climbing takes priority
+    if (isClimbing && currentMovementState.get() != nullptr)
+    {
+        if (typeid(*currentMovementState) != typeid(ClimbingMovementState))
+        {
+            transitionToMovementState(std::make_unique<ClimbingMovementState>());
+        }
+    }
+    // Then swimming
+    else if (swimming && isWaterEquipped())
+    {
+        if (currentMovementState.get() == nullptr || 
+            typeid(*currentMovementState) != typeid(SwimmingMovementState))
+        {
+            transitionToMovementState(std::make_unique<SwimmingMovementState>());
+        }
+    }
+    // Finally normal movement
+    else
+    {
+        if (currentMovementState.get() == nullptr || 
+            typeid(*currentMovementState) != typeid(NormalMovementState))
+        {
+            transitionToMovementState(std::make_unique<NormalMovementState>());
+        }
+    }
+}
+
 // Render the attack effect (slash, particles, etc.)
 void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
 {
@@ -330,293 +380,14 @@ void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
 
 void PolarBear::update(float dt, const TileMap& map)
 {
-    const bool useSwimming = swimming && isWaterEquipped();
+    // Update movement state machine
+    updateMovementState();
 
-    // If we just exited water at the surface, give an upward impulse to breach
-    // Only jump out if we're near the top of water (not at the bottom)
-    if (justExitedWater && !onGround)
+    // Delegate physics and animation to current state
+    if (currentMovementState)
     {
-        vy              = -336.0f;
-        onGround        = false;
-        justExitedWater = false;
-    }
-    else if (justExitedWater)
-    {
-        // Clear flag if we're on ground (don't jump from bottom)
-        justExitedWater = false;
-    }
-
-    // --- Climbing check: if climbing, override gravity and vertical velocity ---
-    if (!useSwimming && isClimbing)
-    {
-        // No gravity while actively climbing
-        vy = climbIntent * climbSpeed;
-        // Stick to surface: no horizontal movement while climbing
-        vx = 0.0f;
-
-        // If climbing upward and reaching the top of the climbable surface, mount onto top
-        if (climbIntent < 0.0f)
-        {
-            float midY      = y + spriteHeight / 2.0f;
-            float headY     = y + 1.0f;  // sample just inside top of head
-            float leftX     = x - 1.0f;
-            float rightX    = x + spriteWidth + 1.0f;
-            float sideXMid  = climbOnRightWall ? rightX : leftX;
-            float sideXHead = sideXMid;
-
-            bool midAdj  = map.isClimbableAtWorld(sideXMid, midY);
-            bool headAdj = map.isClimbableAtWorld(sideXHead, headY);
-
-            // If adjacent at mid but not at head, we reached the top
-            if (midAdj && !headAdj)
-            {
-                // Calculate the tile position of the climbable surface
-                int tileX = static_cast<int>(sideXMid) / map.tileSize;
-                int tileY = static_cast<int>(midY) / map.tileSize;
-
-                // Position bear on top of the tile, slightly higher so gravity settles it
-                float topOfTile = tileY * map.tileSize;
-                y               = topOfTile - spriteHeight - 3.0f;
-
-                // Move bear horizontally onto the tile
-                // Center the bear on the tile or align to tile edge based on which side we're
-                // climbing
-                if (climbOnRightWall)
-                {
-                    // Wall is on right, move bear onto that tile
-                    x = tileX * map.tileSize;
-                }
-                else
-                {
-                    // Wall is on left, move bear onto that tile (align to right edge of tile)
-                    x = (tileX + 1) * map.tileSize - spriteWidth;
-                }
-
-                // Exit climbing state and let gravity handle final positioning
-                isClimbing  = false;
-                climbIntent = 0.0f;
-                vy          = 0.0f;
-                vx          = 0.0f;
-                onGround    = false;  // Let physics detect ground
-
-                // Begin ledge mount window to disable input during transition
-                ledgeMounting   = true;
-                ledgeMountTimer = ledgeMountDuration;
-            }
-        }
-    }
-    else if (!useSwimming)
-    {
-        // --- Apply gravity ---
-        const float GRAVITY = 1000.0f;
-        vy += GRAVITY * dt;
-    }
-    else
-    {
-        // Swimming: override gravity with swim rise/sink and set horizontal swim speed
-        isClimbing = false;
-        if (onGround && !swimPressed)
-        {
-            // Resting at bottom: completely lock velocity
-            vy = 0.0f;
-            vx = 0.0f;
-        }
-        else if (swimPressed)
-        {
-            vy = -swimUpSpeed;
-            vx = moveIntent * swimRunSpeed;
-        }
-        else
-        {
-            vy = swimSinkSpeed;
-            vx = moveIntent * swimRunSpeed;
-        }
-    }
-
-    // --- Horizontal intent -> velocity (supports slippery surfaces) ---
-    // Skip applying moveIntent while climbing (vx already set to 0 above)
-    if (!isClimbing && !useSwimming)
-    {
-        // Detect slipperiness at the feet (one pixel above the sole to stay within tile)
-        // Sample at the tile directly beneath the feet (landing puts feet exactly at tile top)
-        float footY        = y + spriteHeight;
-        float footCenter   = x + spriteWidth / 2.0f;
-        float footLeft     = x + 2.0f;                // sample near left foot
-        float footRight    = x + spriteWidth - 2.0f;  // sample near right foot
-        bool onSlippery    = onGround && (map.isSlipperyAtWorld(footCenter, footY) ||
-                                       map.isSlipperyAtWorld(footLeft, footY) ||
-                                       map.isSlipperyAtWorld(footRight, footY));
-        const float runspd = 75.0f;  // base ground speed
-
-        if (onSlippery)
-        {
-            // Faster top speed, gradual accel; very light friction so bear keeps sliding when
-            // released
-            const float slipMaxSpeed = 165.0f;
-            const float slipAccel    = 260.0f;  // px/s^2 while holding
-            const float slipFriction = 40.0f;   // px/s^2 when released (very low)
-
-            float desired = moveIntent * slipMaxSpeed;
-            if (moveIntent != 0.0f)
-            {
-                float delta = slipAccel * dt;
-                if (vx < desired)
-                    vx = std::min(vx + delta, desired);
-                else if (vx > desired)
-                    vx = std::max(vx - delta, desired);
-            }
-            else
-            {
-                // Decay slowly to mimic sliding; keep sign until friction bleeds it out
-                float delta = slipFriction * dt;
-                if (vx > 0.0f)
-                    vx = std::max(0.0f, vx - delta);
-                else if (vx < 0.0f)
-                    vx = std::min(0.0f, vx + delta);
-            }
-        }
-        else
-        {
-            // Regular ground/air movement snaps to intended speed
-            vx = moveIntent * runspd;
-        }
-    }  // end if (!isClimbing)
-
-    // --- Horizontal movement with collision ---
-    x += vx * dt;
-
-    // Check horizontal collisions (left and right edges)
-    // Require at least 80% of height to collide for blocking
-    const int samples = 10;
-    int collisions    = 0;
-    for (int i = 0; i < samples; ++i)
-    {
-        int h = (i * spriteHeight) / (samples - 1);
-        if (h >= spriteHeight)
-            h = spriteHeight - 1;
-
-        if (vx > 0)
-        {
-            // Moving right - check right edge
-            if (map.isSolidAtWorld(x + spriteWidth, y + h))
-                collisions++;
-        }
-        else if (vx < 0)
-        {
-            // Moving left - check left edge
-            if (map.isSolidAtWorld(x, y + h))
-                collisions++;
-        }
-    }
-
-    // Block movement if 30% or more of the body collides
-    if (collisions >= samples * 0.3f)
-    {
-        if (vx > 0)
-        {
-            x  = (static_cast<int>(x + spriteWidth) / map.tileSize) * map.tileSize - spriteWidth;
-            vx = 0;
-        }
-        else if (vx < 0)
-        {
-            x  = (static_cast<int>(x) / map.tileSize + 1) * map.tileSize;
-            vx = 0;
-        }
-    }
-
-    // --- Vertical movement with collision ---
-    // When swimming, we need to detect solid ground even through water tiles
-    if (useSwimming && vy >= 0)
-    {
-        // Check if we're touching ground while sinking
-        const int vSamples = 10;
-        int vCollisions    = 0;
-        
-        for (int i = 0; i < vSamples; ++i)
-        {
-            int w = (i * spriteWidth) / (vSamples - 1);
-            if (w >= spriteWidth)
-                w = spriteWidth - 1;
-            
-            if (map.isSolidAtWorld(x + w, y + spriteHeight, 1.0f) ||
-                map.isCollisionDownOnlyAtWorld(x + w, y + spriteHeight))
-            {
-                vCollisions++;
-            }
-        }
-        
-        if (vCollisions >= vSamples * 0.2f)
-        {
-            onGround = true;
-        }
-        else
-        {
-            onGround = false;
-        }
-    }
-    
-    bool restingInWater = useSwimming && onGround && !swimPressed;
-
-    if (!restingInWater)
-    {
-        y += vy * dt;
-
-        if (!useSwimming)
-            onGround = false;
-
-        // Check vertical collisions (top and bottom edges) with 30% threshold
-        const int vSamples = 10;
-        int vCollisions    = 0;
-
-        for (int i = 0; i < vSamples; ++i)
-        {
-            int w = (i * spriteWidth) / (vSamples - 1);
-            if (w >= spriteWidth)
-                w = spriteWidth - 1;
-
-            if (vy > 0)
-            {
-                // Moving down - check bottom edge for regular collisions and down-only platforms
-                if (map.isSolidAtWorld(x + w, y + spriteHeight, vy) ||
-                    map.isCollisionDownOnlyAtWorld(x + w, y + spriteHeight))
-                {
-                    vCollisions++;
-                }
-            }
-            else if (vy < 0)
-            {
-                // Moving up - check top edge
-                if (map.isSolidAtWorld(x + w, y))
-                {
-                    vCollisions++;
-                }
-            }
-        }
-
-        if (vCollisions >= vSamples * 0.2f)
-        {
-            if (vy > 0)
-            {
-                y  = (static_cast<int>(y + spriteHeight) / map.tileSize) * map.tileSize - spriteHeight;
-                vy = 0;
-                if (!useSwimming)
-                    onGround = true;
-                // Clear knockback state when landing
-                isKnockedBack = false;
-            }
-            else if (vy < 0)
-            {
-                y  = (static_cast<int>(y) / map.tileSize + 1) * map.tileSize;
-                vy = 0;
-            }
-        }
-    }
-    else
-    {
-        // Resting at bottom in water: lock position completely
-        vy = 0.0f;
-        vx = 0.0f;
-        // No position update - stay completely still
+        currentMovementState->updatePhysics(*this, dt, map);
+        currentMovementState->updateAnimation(*this, dt);
     }
 
     // --- Update ledge mount timer ---
@@ -659,60 +430,6 @@ void PolarBear::update(float dt, const TileMap& map)
         {
             // Bear fell off the world - kill it
             hearts = 0;
-        }
-    }
-
-    // --- Animation ---
-    if (useSwimming)
-    {
-        // When resting on the bottom, stay idle (no swim animation)
-        if (onGround)
-        {
-            frame      = 0;
-            frameTimer = 0.0f;
-        }
-        else
-        {
-            frameTimer += dt;
-            if (frameTimer >= swimFrameTime)
-            {
-                frameTimer = 0.0f;
-                frame      = (frame + 1) % std::max(1, waterSwimFrames);
-            }
-        }
-    }
-    else if (isClimbing)
-    {
-        // Animate climb when moving vertically; otherwise show first frame
-        if (std::abs(climbIntent) > 0.0f)
-        {
-            frameTimer += dt;
-            if (frameTimer >= climbFrameTime)
-            {
-                frameTimer = 0.0f;
-                frame      = (frame + 1) % std::max(1, climbFrames);
-            }
-        }
-        else
-        {
-            frame = 0;
-        }
-    }
-    else
-    {
-        // Walking/idle animation
-        if (vx != 0)
-        {
-            frameTimer += dt;
-            if (frameTimer >= frameTime)
-            {
-                frameTimer = 0.0f;
-                frame      = (frame + 1) % numFrames;
-            }
-        }
-        else
-        {
-            frame = 0;  // idle frame
         }
     }
 

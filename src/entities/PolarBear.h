@@ -13,9 +13,11 @@
 
 #include "../actions/Attack.h"
 #include "TileMap.h"
+#include "movement/MovementState.h"
 
-// Forward declaration.
+// Forward declarations.
 class Attack;
+class MovementState;
 
 // Player character class.
 // Manages position, velocity, animation state, and attack mechanics.
@@ -217,4 +219,13 @@ class PolarBear
     bool ledgeMounting       = false;
     float ledgeMountTimer    = 0.0f;
     float ledgeMountDuration = 0.25f;
+
+   private:
+    // Movement state machine
+    std::unique_ptr<MovementState> currentMovementState = nullptr;
+
+    // Helper methods for state transitions
+    void transitionToMovementState(std::unique_ptr<MovementState> newState);
+    void updateMovementState();
 };
+
