@@ -6,6 +6,7 @@
 // input handling, game updates, and rendering.
 
 #include "Game.h"
+#include "core/Collision.h"
 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
@@ -1044,19 +1045,6 @@ void Game::update(float dt)
         return;
     }
 
-    // Helper to shrink AABB to approximate opaque pixels (reduces false hits on transparent areas)
-    auto shrinkRect = [](const SDL_Rect &r, float insetFrac)
-    {
-        SDL_Rect s = r;
-        int insetX = static_cast<int>(r.w * insetFrac);
-        int insetY = static_cast<int>(r.h * insetFrac);
-        s.x += insetX;
-        s.y += insetY;
-        s.w = std::max(0, r.w - 2 * insetX);
-        s.h = std::max(0, r.h - 2 * insetY);
-        return s;
-    };
-
     // Update player only if not in boss intro; keep updating during death to let animations finish
     bool bossFreezePlayer = boss && boss->isIntroActive();
 
@@ -1294,10 +1282,8 @@ void Game::update(float dt)
             if (!e->alive)
                 continue;
             SDL_Rect er      = e->getAABB();
-            SDL_Rect erTight = shrinkRect(er, 0.10f);
-            // AABB intersection test: check if slash and enemy rectangles overlap.
-            if (!(slashRect.x + slashRect.w < erTight.x || erTight.x + erTight.w < slashRect.x ||
-                  slashRect.y + slashRect.h < erTight.y || erTight.y + erTight.h < slashRect.y))
+            SDL_Rect erTight = Collision::shrinkRect(er, 0.10f);
+            if (Collision::intersects(slashRect, erTight))
             {
                 // Hit detected: mark enemy as dead and create explosion effect.
                 e->alive = false;
@@ -1320,11 +1306,8 @@ void Game::update(float dt)
         {
             SDL_Rect bossRect;
             boss->getCollisionRect(bossRect);
-            SDL_Rect bossTight = shrinkRect(bossRect, 0.10f);
-            if (!(slashRect.x + slashRect.w < bossTight.x ||
-                  bossTight.x + bossTight.w < slashRect.x ||
-                  slashRect.y + slashRect.h < bossTight.y ||
-                  bossTight.y + bossTight.h < slashRect.y))
+            SDL_Rect bossTight = Collision::shrinkRect(bossRect, 0.10f);
+            if (Collision::intersects(slashRect, bossTight))
             {
                 bossSlashHit = true;  // Mark this slash as having hit
                 // Hit detected - let boss decide if damage applies (plays metal clash if not
@@ -1360,18 +1343,15 @@ void Game::update(float dt)
     // Enemy-bear collision detection: check if any enemy touches the bear.
     SDL_Rect bearRect{static_cast<int>(polarBear.x), static_cast<int>(polarBear.y),
                       polarBear.spriteWidth, polarBear.spriteHeight};
-    SDL_Rect bearTight = shrinkRect(bearRect, 0.10f);
+    SDL_Rect bearTight = Collision::shrinkRect(bearRect, 0.10f);
 
     // Boss collision: if robot touches the bear, damage him (skip during intro or death phases)
     if (boss && bossHasSpawn && !boss->isIntroActive() && boss->canDamagePlayer())
     {
         SDL_Rect bossRect;
         boss->getCollisionRect(bossRect);
-        SDL_Rect bossTight = shrinkRect(bossRect, 0.10f);
-        bool bossHit =
-            !(bearTight.x + bearTight.w < bossTight.x || bossTight.x + bossTight.w < bearTight.x ||
-              bearTight.y + bearTight.h < bossTight.y || bossTight.y + bossTight.h < bearTight.y);
-        if (bossHit)
+        SDL_Rect bossTight = Collision::shrinkRect(bossRect, 0.10f);
+        if (Collision::intersects(bearTight, bossTight))
         {
             polarBear.takeDamage();
         }
@@ -1382,9 +1362,7 @@ void Game::update(float dt)
     {
         for (const auto &r : endAreas)
         {
-            bool endHit = !(bearTight.x + bearTight.w < r.x || r.x + r.w < bearTight.x ||
-                            bearTight.y + bearTight.h < r.y || r.y + r.h < bearTight.y);
-            if (endHit)
+            if (Collision::intersects(bearTight, r))
             {
                 // Begin fast fade-out transition to boss stage
                 stageFadingOut = true;
@@ -1399,11 +1377,9 @@ void Game::update(float dt)
     {
         if (!e->alive)
             continue;
-        SDL_Rect er      = e->getAABB();
-        SDL_Rect erTight = shrinkRect(er, 0.10f);
-        // AABB intersection test: check if bear and enemy rectangles overlap.
-        if (!(bearTight.x + bearTight.w < erTight.x || erTight.x + erTight.w < bearTight.x ||
-              bearTight.y + bearTight.h < erTight.y || erTight.y + erTight.h < bearTight.y))
+          SDL_Rect er      = e->getAABB();
+          SDL_Rect erTight = Collision::shrinkRect(er, 0.10f);
+          if (Collision::intersects(bearTight, erTight))
         {
             // Collision detected: damage the bear.
             polarBear.takeDamage();
@@ -1427,10 +1403,8 @@ void Game::update(float dt)
             continue;
 
         SDL_Rect fbRect{static_cast<int>(fb.x), static_cast<int>(fb.y), fb.width, fb.height};
-        SDL_Rect fbTight = shrinkRect(fbRect, 0.25f);
-        bool hit = !(fbTight.x + fbTight.w < bearTight.x || bearTight.x + bearTight.w < fbTight.x ||
-                     fbTight.y + fbTight.h < bearTight.y || bearTight.y + bearTight.h < fbTight.y);
-        if (hit)
+        SDL_Rect fbTight = Collision::shrinkRect(fbRect, 0.25f);
+        if (Collision::intersects(fbTight, bearTight))
         {
             fb.alive = false;
             // Suppress boss-origin damage when boss is in death phases
@@ -1474,9 +1448,7 @@ void Game::update(float dt)
         if (p.type == "heart")
         {
             SDL_Rect pr{static_cast<int>(p.x), static_cast<int>(p.y), map.tileSize, map.tileSize};
-            bool hit = !(bearTight.x + bearTight.w < pr.x || pr.x + pr.w < bearTight.x ||
-                         bearTight.y + bearTight.h < pr.y || pr.y + pr.h < bearTight.y);
-            if (hit)
+            if (Collision::intersects(bearTight, pr))
             {
                 p.collected = true;
                 polarBear.maxHearts += 1;
