@@ -199,6 +199,24 @@ The codebase uses an object-oriented design with clear separation of concerns:
 - **Audio system**: SDL_mixer for music and sound effects
 - **Camera system**: Smooth following with lock/unlock transitions
 
+## Assets & Licensing
+
+### Music
+
+All music tracks in this project are licensed under Creative Commons licenses and are used with attribution:
+
+- Background music are located in `assets/music/`
+
+### Sounds
+
+All the sound effects where downloaded from [Free Sound](https://freesound.org/), and are under the CC0 License.
+
+- Sound effects are located in `assets/sfx`
+
+### Graphics
+
+Game sprites and artwork under the this open-source repo where generated using GenAI from [Pixel Lab](https://www.pixellab.ai/), [Gemini](https://gemini.google.com/) and [ChatGPT](https://chat.openai.com/). Following the terms of these GenAI assets, I held no responsibility if these assets are used in other videogames as I am not licensing them, I am just sharing.
+
 ## Notes
 
 - The game runs at ~60 FPS with a fixed timestep
