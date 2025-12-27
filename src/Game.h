@@ -18,6 +18,7 @@
 #include "Cutscene.h"
 #include "Explosion.h"
 #include "TileMap.h"
+#include "levels/StageRegistry.h"
 #include "TitleScreen.h"
 #include "WorldMap.h"
 #include "core/Camera.h"
@@ -89,7 +90,7 @@ class Game
 
     // Path to game assets (sprites, maps, etc.).
     const std::string ASSET_PATH = "../../assets/";  // Deprecated; use config.assetPath instead
-    std::string stageName        = "stage1";         // Stage to load (e.g., "stage1", "dev_stage").
+    std::string stageName        = StageNames::SnowyCliffs;  // Stage to load (e.g., "snowy-cliffs", "dev_stage").
     Config config;                                   // Centralized configuration
 
     Mix_Music* backgroundMusic = nullptr;  // Background music for the current stage.

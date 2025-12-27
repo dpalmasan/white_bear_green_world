@@ -125,60 +125,109 @@ void Game::loadAssets()
                   << config.assetPath << "'\n";
     }
 
-    // Build stage path dynamically (e.g., "stage1" or "dev_stage")
-    const std::string stagePath = stageName + "/";
+    const StageInfo* stageInfo = StageRegistry::find(stageName);
+    if (!stageInfo)
+    {
+        stageInfo = &StageRegistry::defaultStage();
+        stageName = stageInfo->name;  // normalize name
+    }
+
+    const std::string stagePath = stageInfo->folder + "/";
 
     // Load the map from JSON
-    if (!map.loadFromJSON(config.assetPath + stagePath + "map.json"))
+    if (!map.loadFromJSON(config.assetPath + stagePath + stageInfo->mapFile))
     {
         std::cerr << "Failed to load map.json from stage '" << stageName << "'\n";
         return;
     }
 
     // Load the spritesheet for the tilemap
-    if (!map.loadSpritesheet(renderer, config.assetPath + stagePath + "spritesheet.png"))
+    if (!map.loadSpritesheet(renderer, config.assetPath + stagePath + stageInfo->spriteFile))
     {
         std::cerr << "Failed to load spritesheet.png\n";
         return;
     }
 
-    // Load shared enemy/attack textures
-    robotAttackTexture = IMG_LoadTexture(renderer, (config.assetPath + "robot-attack.png").c_str());
-    if (!robotAttackTexture)
-        std::cerr << "Failed to load robot-attack.png: " << IMG_GetError() << "\n";
-    roboFireballTexture = IMG_LoadTexture(renderer, (config.assetPath + "robo-cannon.png").c_str());
-    if (!roboFireballTexture)
-        std::cerr << "Failed to load robo-cannon.png: " << IMG_GetError() << "\n";
+    // Detect which enemies/bosses exist in the map so we only load the textures we need
+    const auto enemySpawnTiles = map.getEnemySpawnTiles();
+    const auto bossSpawnTiles  = map.getBossTiles();
 
-    frenzyWolfIdleTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-idle.png").c_str());
-    if (!frenzyWolfIdleTex)
-        std::cerr << "Failed to load frenzy_wolf-idle.png: " << IMG_GetError() << "\n";
-    frenzyWolfRunTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-attack.png").c_str());
-    if (!frenzyWolfRunTex)
-        std::cerr << "Failed to load frenzy_wolf-attack.png: " << IMG_GetError() << "\n";
+    bool hasRobotEnemy      = false;
+    bool hasFrenzyWolfEnemy = false;
+    bool hasArachnoidEnemy  = false;
+    bool hasSnowRobotBoss   = false;
 
-    arachnoidTexture = IMG_LoadTexture(renderer, (config.assetPath + "arachnoid.png").c_str());
-    if (!arachnoidTexture)
-        std::cerr << "Failed to load arachnoid.png: " << IMG_GetError() << "\n";
+    for (const auto* tile : enemySpawnTiles)
+    {
+        if (tile->enemyType == "robot")
+            hasRobotEnemy = true;
+        else if (tile->enemyType == "frenzy_wolf")
+            hasFrenzyWolfEnemy = true;
+        else if (tile->enemyType == "arachnoid")
+            hasArachnoidEnemy = true;
+    }
 
-    bossSnowRobotTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-deactivated.png").c_str());
-    if (!bossSnowRobotTex)
-        std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError() << "\n";
-    bossRobotAttackTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-attack.png").c_str());
-    if (!bossRobotAttackTex)
-        std::cerr << "Failed to load boss-robot-attack.png: " << IMG_GetError() << "\n";
-    bossRobotDashTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-dash.png").c_str());
-    if (!bossRobotDashTex)
-        std::cerr << "Failed to load boss-robot-dash.png: " << IMG_GetError() << "\n";
-    bossRobotVulnerableTex =
-        IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-vulnerable.png").c_str());
-    if (!bossRobotVulnerableTex)
-        std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError() << "\n";
+    for (const auto* tile : bossSpawnTiles)
+    {
+        if (tile->boss == "snow-robot")
+            hasSnowRobotBoss = true;
+    }
+
+    // Load shared enemy/attack textures only when the map actually uses them
+    if (hasRobotEnemy)
+    {
+        robotAttackTexture =
+            IMG_LoadTexture(renderer, (config.assetPath + "robot-attack.png").c_str());
+        if (!robotAttackTexture)
+            std::cerr << "Failed to load robot-attack.png: " << IMG_GetError() << "\n";
+
+        roboFireballTexture =
+            IMG_LoadTexture(renderer, (config.assetPath + "robo-cannon.png").c_str());
+        if (!roboFireballTexture)
+            std::cerr << "Failed to load robo-cannon.png: " << IMG_GetError() << "\n";
+    }
+
+    if (hasFrenzyWolfEnemy)
+    {
+        frenzyWolfIdleTex =
+            IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-idle.png").c_str());
+        if (!frenzyWolfIdleTex)
+            std::cerr << "Failed to load frenzy_wolf-idle.png: " << IMG_GetError() << "\n";
+        frenzyWolfRunTex =
+            IMG_LoadTexture(renderer, (config.assetPath + "frenzy_wolf-attack.png").c_str());
+        if (!frenzyWolfRunTex)
+            std::cerr << "Failed to load frenzy_wolf-attack.png: " << IMG_GetError() << "\n";
+    }
+
+    if (hasArachnoidEnemy)
+    {
+        arachnoidTexture = IMG_LoadTexture(renderer, (config.assetPath + "arachnoid.png").c_str());
+        if (!arachnoidTexture)
+            std::cerr << "Failed to load arachnoid.png: " << IMG_GetError() << "\n";
+    }
+
+    if (hasSnowRobotBoss)
+    {
+        bossSnowRobotTex =
+            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-deactivated.png").c_str());
+        if (!bossSnowRobotTex)
+            std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError()
+                      << "\n";
+        bossRobotAttackTex =
+            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-attack.png").c_str());
+        if (!bossRobotAttackTex)
+            std::cerr << "Failed to load boss-robot-attack.png: " << IMG_GetError() << "\n";
+        bossRobotDashTex =
+            IMG_LoadTexture(renderer, (config.assetPath + "boss-robot-dash.png").c_str());
+        if (!bossRobotDashTex)
+            std::cerr << "Failed to load boss-robot-dash.png: " << IMG_GetError() << "\n";
+        bossRobotVulnerableTex =
+            IMG_LoadTexture(renderer,
+                            (config.assetPath + "boss-robot-vulnerable.png").c_str());
+        if (!bossRobotVulnerableTex)
+            std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError()
+                      << "\n";
+    }
 
     // Load sound effects
     slashSound = Mix_LoadWAV((config.assetPath + "sfx/slash.wav").c_str());
@@ -323,8 +372,7 @@ void Game::loadAssets()
     }
 
     // Spawn enemies from map tiles marked with "enemy" attribute
-    auto spawnTiles = map.getEnemySpawnTiles();
-    for (const auto *tile : spawnTiles)
+    for (const auto *tile : enemySpawnTiles)
     {
         // Convert tile coordinates to world coordinates
         float worldX      = tile->x * map.tileSize;
@@ -396,6 +444,25 @@ void Game::loadAssets()
             enemies.push_back(std::move(arachnoid));
         }
     }
+
+    // Cache boss spawn location and instantiate boss
+    {
+        if (!bossSpawnTiles.empty())
+        {
+            const Tile *bt = bossSpawnTiles.front();
+            float spawnX   = bt->x * map.tileSize;
+            float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
+
+            // Instantiate boss based on type
+            if (bt->boss == "snow-robot")
+            {
+                boss = std::make_unique<SnowRobotBoss>();
+                boss->loadAssets(renderer, config.assetPath);
+                boss->setPosition(spawnX, spawnY);
+                bossHasSpawn = true;
+            }
+        }
+    }
     // Cache end-of-area triggers as rectangles
     {
         endAreas.clear();
@@ -417,11 +484,10 @@ void Game::loadAssets()
         }
     }
 
-    // Load end scene assets for stage1
-    if (stageName == "snowy-cliffs")
+    // Load optional end scene assets
+    if (!stageInfo->endSceneTexture.empty())
     {
-        // End scene texture
-        SDL_Surface *endSurf = IMG_Load((config.assetPath + "end_stage1_scene.png").c_str());
+        SDL_Surface *endSurf = IMG_Load((config.assetPath + stageInfo->endSceneTexture).c_str());
         if (endSurf)
         {
             endSceneTexture = SDL_CreateTextureFromSurface(renderer, endSurf);
@@ -433,24 +499,26 @@ void Game::loadAssets()
         }
         else
         {
-            std::cerr << "Failed to load end_stage1_scene.png: " << IMG_GetError() << "\n";
+            std::cerr << "Failed to load " << stageInfo->endSceneTexture << ": " << IMG_GetError() << "\n";
         }
-        // End scene music
-        const std::string endMusicPath = config.assetPath + std::string("music/is_there_hope.ogg");
-        endSceneMusic                  = Mix_LoadMUS(endMusicPath.c_str());
-        if (!endSceneMusic)
+
+        if (!stageInfo->endSceneMusic.empty())
         {
-            std::cerr << "Failed to load end scene music: " << Mix_GetError() << "\n";
+            const std::string endMusicPath = config.assetPath + stageInfo->endSceneMusic;
+            endSceneMusic                  = Mix_LoadMUS(endMusicPath.c_str());
+            if (!endSceneMusic)
+            {
+                std::cerr << "Failed to load end scene music: " << Mix_GetError() << "\n";
+            }
         }
     }
 
     // Load background music for the stage (looping).
     // Music is located in assets/music/ folder (shared across stages)
     // Skip autoplay for boss maps or if showing intro/title; music will start after title screen
-    if (stageName == "snowy-cliffs-boss")
+    if (stageInfo->isBoss && !stageInfo->bossMusic.empty())
     {
-        // Preload boss theme; do not play until intro starts
-        const std::string bossMusicPath = config.assetPath + std::string("music/boss_theme.ogg");
+        const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
         bossMusic                       = Mix_LoadMUS(bossMusicPath.c_str());
         if (!bossMusic)
         {
@@ -458,19 +526,9 @@ void Game::loadAssets()
                       << "\n";
         }
     }
-    else
+    else if (!stageInfo->backgroundMusic.empty())
     {
-        // Regular stage: determine music based on stage name
-        std::string musicPath;
-        if (stageName == "snowy-cliffs")
-        {
-            musicPath = config.assetPath + std::string("music/snowy_cliffs.ogg");
-        }
-        else
-        {
-            // Default fallback
-            musicPath = config.assetPath + std::string("music/snowy_cliffs.ogg");
-        }
+        const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
         
         backgroundMusic = Mix_LoadMUS(musicPath.c_str());
         if (!backgroundMusic)
@@ -575,7 +633,7 @@ void Game::handleInput()
             titleFadeTimer += (1.0f / 60.0f);  // progress roughly per frame; precise dt is in update
             if (titleFadeTimer >= titleFadeDuration)
             {
-                // Transition: leave title, load snowy-cliffs, then fade in
+                // Transition: leave title, load default stage, then fade in
                 showTitleScreen = false;
                 titleScreen.reset();
 
@@ -587,7 +645,7 @@ void Game::handleInput()
                 endAreas.clear();
 
                 config.showWorldMap = false;
-                stageName           = "snowy-cliffs";
+                stageName           = StageNames::SnowyCliffs;
                 loadAssets();
 
                 // Switch fades
@@ -795,7 +853,7 @@ void Game::update(float dt)
                 // Execute transition: leave map, load stage, start fade-in
                 worldMap.clean();
                 config.showWorldMap = false;
-                stageName           = "snowy-cliffs";
+                stageName           = StageNames::SnowyCliffs;
 
                 // Stop map music
                 if (mapMusic)
@@ -1332,7 +1390,7 @@ void Game::update(float dt)
                 stageFadingOut = true;
                 stageFadingIn  = false;
                 stageFadeTimer = 0.0f;
-                nextStageName  = "snowy-cliffs-boss";
+                nextStageName  = StageNames::SnowyCliffsBoss;
                 break;
             }
         }
