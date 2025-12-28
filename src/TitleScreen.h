@@ -39,6 +39,9 @@ class TitleScreen
     // Reset fade-in state (for transitioning from cutscene)
     void resetFadeIn();
 
+    // Clean up all assets (textures and music)
+    void clean();
+
    private:
     SDL_Texture* backgroundTexture = nullptr;
     SDL_Texture* titleLettersTexture = nullptr;

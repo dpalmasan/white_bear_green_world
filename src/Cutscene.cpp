@@ -8,6 +8,11 @@ Cutscene::Cutscene() {}
 
 Cutscene::~Cutscene()
 {
+    clean();
+}
+
+void Cutscene::clean()
+{
     for (auto* texture : sceneTextures)
     {
         if (texture)

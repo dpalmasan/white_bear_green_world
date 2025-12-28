@@ -8,6 +8,11 @@ TitleScreen::TitleScreen() {}
 
 TitleScreen::~TitleScreen()
 {
+    clean();
+}
+
+void TitleScreen::clean()
+{
     if (backgroundTexture)
     {
         SDL_DestroyTexture(backgroundTexture);

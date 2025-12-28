@@ -38,6 +38,9 @@ class Cutscene
     // Check if this cutscene can be skipped
     bool canBeSkipped() const { return skippable; }
 
+    // Clean up all assets (textures and music)
+    void clean();
+
    private:
     enum State
     {

@@ -648,6 +648,7 @@ void Game::handleInput()
             showIntroCutscene = false;
             showTitleScreen = true;
             introCutscene.reset();
+            introCutscene.clean();  // Free intro cutscene assets to save memory
             titleScreen.resetFadeIn();  // Start fade-in from black
         }
         
@@ -686,6 +687,7 @@ void Game::handleInput()
                 // Transition: leave title, load default stage, then fade in
                 showTitleScreen = false;
                 titleScreen.reset();
+                titleScreen.clean();  // Free title screen assets to save memory
 
                 // Clear gameplay state before loading stage
                 enemies.clear();
@@ -900,6 +902,7 @@ void Game::update(float dt)
         if (introCutscene.isComplete())
         {
             showIntroCutscene = false;
+            introCutscene.clean();  // Free intro cutscene assets to save memory
             inCutsceneToTitleFade = true;
             fadeToBlackTimer = 0.0f;
         }
@@ -1305,6 +1308,28 @@ void Game::update(float dt)
 
             // After collecting the boss heart, return to the world map
             returnToMapAfterPickup = true;
+
+            // Free boss textures to save memory
+            if (bossSnowRobotTex)
+            {
+                SDL_DestroyTexture(bossSnowRobotTex);
+                bossSnowRobotTex = nullptr;
+            }
+            if (bossRobotAttackTex)
+            {
+                SDL_DestroyTexture(bossRobotAttackTex);
+                bossRobotAttackTex = nullptr;
+            }
+            if (bossRobotDashTex)
+            {
+                SDL_DestroyTexture(bossRobotDashTex);
+                bossRobotDashTex = nullptr;
+            }
+            if (bossRobotVulnerableTex)
+            {
+                SDL_DestroyTexture(bossRobotVulnerableTex);
+                bossRobotVulnerableTex = nullptr;
+            }
 
             // Start smooth camera unlock transition to player position
             cameraUnlocking     = true;
