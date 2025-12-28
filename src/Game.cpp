@@ -78,12 +78,16 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
+    // Query the actual current window size (in case window was resized)
+    int actualWindowWidth = 0, actualWindowHeight = 0;
+    SDL_GetWindowSize(window, &actualWindowWidth, &actualWindowHeight);
+    
     // If starting on world map, load only world map assets and skip intro/title
     if (config.showWorldMap)
     {
-        // Render world map at full screen: reset scale and logical size to window dimensions
+        // Render world map at full screen: reset scale and logical size to actual window dimensions
         SDL_RenderSetScale(renderer, 1.0f, 1.0f);
-        SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
+        SDL_RenderSetLogicalSize(renderer, actualWindowWidth, actualWindowHeight);
 
         if (!worldMap.load(renderer, config.assetPath))
         {
@@ -249,12 +253,21 @@ void Game::loadAssets()
     if (!explosionSound)
         std::cerr << "Failed to load explosion.wav: " << Mix_GetError() << "\n";
 
-    // Apply zoom by scaling the renderer; camera view is window size divided by zoom
-    SDL_RenderSetScale(renderer, cameraZoom, cameraZoom);
-
-    // Initialize camera view based on zoomed logical size
-    camera.width  = static_cast<int>(windowWidth / cameraZoom);
-    camera.height = static_cast<int>(windowHeight / cameraZoom);
+    // Reset renderer to game mode (undo world map scaling)
+    // Use the already-queried actual current window size
+    
+    // CRITICAL: Reset scale FIRST before changing logical size to avoid state accumulation
+    SDL_RenderSetScale(renderer, 1.0f, 1.0f);
+    
+    // Set logical size to base game resolution (same as init)
+    const int logicalWidth = 320;
+    const int logicalHeight = 240;
+    SDL_RenderSetLogicalSize(renderer, logicalWidth, logicalHeight);
+    
+    // Camera always sees the same logical area based on zoom level
+    // Camera dimensions are determined by logical size and config zoom only
+    camera.width  = static_cast<int>(logicalWidth / config.cameraZoom);
+    camera.height = static_cast<int>(logicalHeight / config.cameraZoom);
 
     // Set the world size for camera bounds to the full map dimensions.
     // Map coordinates are 0-based, so actual pixel size is (width) * tileSize
