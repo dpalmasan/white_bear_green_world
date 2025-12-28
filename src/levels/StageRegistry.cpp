@@ -31,6 +31,18 @@ const StageInfo kSnowyCliffsBoss{
     true                       // isBoss
 };
 
+const StageInfo kWindPeaks{
+    StageNames::WindPeaks,
+    "levels/wind-peaks",
+    "map.json",
+    "spritesheet.png",
+    "music/wind_peaks.ogg",
+    "",                       // bossMusic
+    "",                       // endSceneTexture
+    "",                       // endSceneMusic
+    false                      // isBoss
+};
+
 const StageInfo kDevStage{
     StageNames::DevStage,
     StageNames::DevStage,
@@ -55,6 +67,8 @@ const StageInfo* StageRegistry::find(const std::string& name)
         return &kSnowyCliffs;
     if (name == StageNames::SnowyCliffsBoss)
         return &kSnowyCliffsBoss;
+    if (name == StageNames::WindPeaks)
+        return &kWindPeaks;
     if (name == StageNames::DevStage)
         return &kDevStage;
     return nullptr;

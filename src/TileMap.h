@@ -17,6 +17,7 @@ struct Tile
     bool slippery            = false;  // Slippery surface when true
     bool climbable           = false;  // True if the tile can be climbed
     bool isWater             = false;  // Water tile for swimming mechanics
+    bool is_wind             = false;  // Wind tile with opacity animation
     std::string powerUp;               // Power-up type (e.g., "heart"), empty if none
     bool polarBearSpawn = false;       // Spawn marker for the player
     std::string enemyType;  // Enemy type if this is a spawn tile (e.g., "arachnoid", "robot")
@@ -50,7 +51,7 @@ class TileMap
     bool loadSpritesheet(SDL_Renderer* renderer, const std::string& filename);
 
     // Render all layers to the screen
-    void render(SDL_Renderer* renderer, int camX, int camY) const;
+    void render(SDL_Renderer* renderer, int camX, int camY, float windTime = 0.0f) const;
 
     // Check if a world-space position collides with solid tiles
     // For down-only tiles, only collides if moving downward (vy > 0)

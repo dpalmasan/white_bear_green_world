@@ -76,6 +76,11 @@ bool TileMap::loadFromJSON(const std::string& filename)
                 {
                     tile.isWater = attrs["is_water"].get<bool>();
                 }
+                // Check for wind attribute
+                if (attrs.contains("is_wind"))
+                {
+                    tile.is_wind = attrs["is_wind"].get<bool>();
+                }
                 // Check for enemy attribute
                 if (attrs.contains("enemy"))
                 {
@@ -135,7 +140,7 @@ bool TileMap::loadSpritesheet(SDL_Renderer* renderer, const std::string& filenam
 }
 
 // Render all layers using the spritesheet
-void TileMap::render(SDL_Renderer* renderer, int camX, int camY) const
+void TileMap::render(SDL_Renderer* renderer, int camX, int camY, float windTime) const
 {
     if (!spritesheet)
         return;
@@ -171,7 +176,28 @@ void TileMap::render(SDL_Renderer* renderer, int camX, int camY) const
             // Calculate destination rect in screen space
             SDL_Rect dst{tile.x * tileSize - camX, tile.y * tileSize - camY, tileSize, tileSize};
 
+            // Apply wind animation if this is a wind tile
+            if (tile.is_wind)
+            {
+                // Animate opacity between 50-70% (127-178 in 0-255 range)
+                float opacityFactor = 0.6f + 0.1f * std::sin(windTime * 3.14159f);
+                Uint8 opacity = static_cast<Uint8>(opacityFactor * 255.0f);
+                SDL_SetTextureAlphaMod(spritesheet, opacity);
+                
+                // Add slight shake/wobble (±1-2 pixels)
+                int shakeX = static_cast<int>(2.0f * std::sin(windTime * 4.0f));
+                int shakeY = static_cast<int>(1.5f * std::cos(windTime * 3.5f));
+                dst.x += shakeX;
+                dst.y += shakeY;
+            }
+
             SDL_RenderCopy(renderer, spritesheet, &src, &dst);
+
+            // Reset alpha if we modified it
+            if (tile.is_wind)
+            {
+                SDL_SetTextureAlphaMod(spritesheet, 255);
+            }
         }
     }
 }

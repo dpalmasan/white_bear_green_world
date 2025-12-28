@@ -200,4 +200,7 @@ class Game
     float stageFadeTimer    = 0.0f;
     float stageFadeDuration = 0.5f;    // Fast fade: 0.5s out + 0.5s in = 1s total
     std::string nextStageName;         // Stage to load after fade-out completes
+
+    // Wind animation timer for wind tiles
+    float windAnimationTimer = 0.0f;
 };

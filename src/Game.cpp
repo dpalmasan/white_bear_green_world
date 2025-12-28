@@ -363,8 +363,9 @@ void Game::loadAssets()
         }
     }
 
-    // Load background texture for the level
-    SDL_Surface *bgSurface = IMG_Load((backgroundsPath + "background.png").c_str());
+    // Load background texture for the level (stage-specific)
+    std::string backgroundFilename = stageName + ".png";
+    SDL_Surface *bgSurface = IMG_Load((backgroundsPath + backgroundFilename).c_str());
     if (bgSurface)
     {
         backgroundTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -376,7 +377,7 @@ void Game::loadAssets()
     }
     else
     {
-        std::cerr << "Failed to load background.png: " << IMG_GetError() << "\n";
+        std::cerr << "Failed to load " << backgroundFilename << ": " << IMG_GetError() << "\n";
     }
 
     // Load menu texture for pause screen
@@ -604,7 +605,7 @@ void Game::handleInput()
                     worldMap.currentIndex < (int)worldMap.locations.size())
                 {
                     const auto &loc = worldMap.locations[worldMap.currentIndex];
-                    if (loc.name == "Snowy Cliffs")
+                    if (loc.name == "Snowy Cliffs" || loc.name == "Wind Peaks")
                     {
                         // Begin fade-out transition; actual load happens after fade completes
                         wmFadingOut = true;
@@ -910,7 +911,15 @@ void Game::update(float dt)
                 // Execute transition: leave map, load stage, start fade-in
                 worldMap.clean();
                 config.showWorldMap = false;
-                stageName           = StageNames::SnowyCliffs;
+                
+                // Determine stage name based on selected world map location
+                const auto &selectedLoc = worldMap.locations[worldMap.currentIndex];
+                if (selectedLoc.name == "Snowy Cliffs")
+                    stageName = StageNames::SnowyCliffs;
+                else if (selectedLoc.name == "Wind Peaks")
+                    stageName = StageNames::WindPeaks;
+                else
+                    stageName = StageNames::SnowyCliffs; // default fallback
 
                 // Stop map music
                 if (mapMusic)
@@ -935,6 +944,9 @@ void Game::update(float dt)
         }
         return;
     }
+
+    // Update wind animation timer
+    windAnimationTimer += dt;
 
     // Handle stage-to-stage transition fade
     if (stageFadingOut)
@@ -1650,7 +1662,7 @@ void Game::render()
     }
 
     // Render the tilemap layers using the spritesheet
-    map.render(renderer, camera.x, camera.y);
+    map.render(renderer, camera.x, camera.y, windAnimationTimer);
 
     // Render bosses
     if (boss && bossHasSpawn && !boss->isDead())

@@ -32,6 +32,7 @@ namespace StageNames
 {
     inline constexpr const char* SnowyCliffs     = "snowy-cliffs";
     inline constexpr const char* SnowyCliffsBoss = "snowy-cliffs-boss";
+    inline constexpr const char* WindPeaks       = "wind-peaks";
     inline constexpr const char* DevStage        = "dev_stage";
 }
 
