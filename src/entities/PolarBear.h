@@ -13,11 +13,11 @@
 
 #include "../actions/Attack.h"
 #include "TileMap.h"
-#include "movement/MovementState.h"
+#include "components/BearComponent.h"
 
 // Forward declarations.
 class Attack;
-class MovementState;
+class BearComponent;
 
 // Player character class.
 // Manages position, velocity, animation state, and attack mechanics.
@@ -243,12 +243,9 @@ class PolarBear
     float ledgeMountTimer    = 0.0f;
     float ledgeMountDuration = 0.25f;
 
-   private:
-    // Movement state machine
-    std::unique_ptr<MovementState> currentMovementState = nullptr;
-
-    // Helper methods for state transitions
-    void transitionToMovementState(std::unique_ptr<MovementState> newState);
-    void updateMovementState();
+    // Component-based system (replaces state machine)
+    std::vector<std::unique_ptr<BearComponent>> components;
+    void addComponent(std::unique_ptr<BearComponent> component);
+    void clearComponents();
 };
 

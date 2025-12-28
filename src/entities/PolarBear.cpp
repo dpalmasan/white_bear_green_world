@@ -5,13 +5,19 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <typeinfo>
 
 #include "../actions/Attack.h"
-#include "movement/NormalMovementState.h"
-#include "movement/SwimmingMovementState.h"
-#include "movement/ClimbingMovementState.h"
 
+// Component management
+void PolarBear::addComponent(std::unique_ptr<BearComponent> component)
+{
+    components.push_back(std::move(component));
+}
+
+void PolarBear::clearComponents()
+{
+    components.clear();
+}
 
 // Load the sprite sheet from a PNG file
 void PolarBear::loadTexture(SDL_Renderer* renderer, const std::string& filename)
@@ -381,51 +387,6 @@ void PolarBear::takeDamage()
     vy = jumpPower;  // Smaller jump upward
 }
 
-void PolarBear::transitionToMovementState(std::unique_ptr<MovementState> newState)
-{
-    if (currentMovementState)
-    {
-        currentMovementState->onExit(*this);
-    }
-    currentMovementState = std::move(newState);
-    if (currentMovementState)
-    {
-        currentMovementState->onEnter(*this);
-    }
-}
-
-void PolarBear::updateMovementState()
-{
-    // Determine which movement state we should be in
-    
-    // Climbing takes priority
-    if (isClimbing && currentMovementState.get() != nullptr)
-    {
-        if (typeid(*currentMovementState) != typeid(ClimbingMovementState))
-        {
-            transitionToMovementState(std::make_unique<ClimbingMovementState>());
-        }
-    }
-    // Then swimming
-    else if (swimming && isWaterEquipped())
-    {
-        if (currentMovementState.get() == nullptr || 
-            typeid(*currentMovementState) != typeid(SwimmingMovementState))
-        {
-            transitionToMovementState(std::make_unique<SwimmingMovementState>());
-        }
-    }
-    // Finally normal movement
-    else
-    {
-        if (currentMovementState.get() == nullptr || 
-            typeid(*currentMovementState) != typeid(NormalMovementState))
-        {
-            transitionToMovementState(std::make_unique<NormalMovementState>());
-        }
-    }
-}
-
 // Render the attack effect (slash, particles, etc.)
 void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
 {
@@ -437,14 +398,10 @@ void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
 
 void PolarBear::update(float dt, const TileMap& map)
 {
-    // Update movement state machine
-    updateMovementState();
-
-    // Delegate physics and animation to current state
-    if (currentMovementState)
+    // Update all components (handles all movement, swimming, climbing, armor logic)
+    for (auto& comp : components)
     {
-        currentMovementState->updatePhysics(*this, dt, map);
-        currentMovementState->updateAnimation(*this, dt);
+        comp->update(*this, dt, map);
     }
 
     // --- Update ledge mount timer ---

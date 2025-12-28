@@ -7,6 +7,10 @@
 
 #include "Game.h"
 #include "core/Collision.h"
+#include "entities/components/MovementComponent.h"
+#include "entities/components/WindArmorComponent.h"
+#include "entities/components/SwimmingComponent.h"
+#include "entities/components/ClimbingComponent.h"
 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
@@ -304,6 +308,13 @@ void Game::loadAssets()
     {
         polarBear.setElement(PolarBear::Element::Wind);
     }
+
+    // Initialize bear components (component-based architecture)
+    polarBear.addComponent(std::make_unique<MovementComponent>());
+    polarBear.addComponent(std::make_unique<WindArmorComponent>());
+    polarBear.addComponent(std::make_unique<SwimmingComponent>());
+    polarBear.addComponent(std::make_unique<ClimbingComponent>());
+
     // Enable climb skill and texture if configured
     polarBear.canClimb = config.enableClimbSkill;
     if (polarBear.canClimb)
@@ -802,9 +813,16 @@ void Game::handleInput()
     {
         if (input.isJumping())
         {
-            if (polarBear.onGround)
+            // Check for wind jump first (at top of wind with free space above)
+            if (polarBear.isWindEquipped() && polarBear.inWind)
             {
-                polarBear.vy       = -336.0f;
+                // Wind jump: launch upward out of wind current (16 pixels higher than normal)
+                polarBear.vy = -464.0f;
+                polarBear.onGround = false;
+            }
+            else if (polarBear.onGround)
+            {
+                polarBear.vy       = -400.0f;
                 polarBear.onGround = false;
             }
             else if (polarBear.isClimbing)

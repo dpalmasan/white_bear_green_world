@@ -1,27 +1,32 @@
 // Copyright 2025 Polar Bear Green World
-// Author: Game Development Team
-//
-// NormalMovementState.cpp
+// MovementComponent implementation
 
-#include "NormalMovementState.h"
-
-#include <algorithm>
-
+#include "MovementComponent.h"
 #include "../PolarBear.h"
 #include "../../TileMap.h"
 
-void NormalMovementState::onEnter(PolarBear& bear)
+#include <algorithm>
+
+void MovementComponent::update(PolarBear& bear, float dt, const TileMap& map)
 {
-    // Reset any velocity when entering normal state
+    // Skip if climbing or swimming (other components/states handle those)
+    if (bear.isClimbing || bear.swimming) {
+        return;
+    }
+    
+    applyGravity(bear, dt);
+    applyHorizontalMovement(bear, dt, map);
+    handleCollision(bear, dt, map);
+    updateAnimation(bear, dt);
 }
 
-void NormalMovementState::applyGravity(PolarBear& bear, float dt)
+void MovementComponent::applyGravity(PolarBear& bear, float dt)
 {
     const float GRAVITY = 1000.0f;
     bear.vy += GRAVITY * dt;
 }
 
-void NormalMovementState::applyHorizontalMovement(PolarBear& bear, float dt, const TileMap& map)
+void MovementComponent::applyHorizontalMovement(PolarBear& bear, float dt, const TileMap& map)
 {
     // Detect slipperiness at the feet
     float footY        = bear.y + bear.spriteHeight;
@@ -31,7 +36,7 @@ void NormalMovementState::applyHorizontalMovement(PolarBear& bear, float dt, con
     bool onSlippery    = bear.onGround && (map.isSlipperyAtWorld(footCenter, footY) ||
                                         map.isSlipperyAtWorld(footLeft, footY) ||
                                         map.isSlipperyAtWorld(footRight, footY));
-    const float runspd = 75.0f;
+    const float runspd = 102.0f;
 
     if (onSlippery)
     {
@@ -63,12 +68,9 @@ void NormalMovementState::applyHorizontalMovement(PolarBear& bear, float dt, con
     }
 }
 
-void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap& map)
+void MovementComponent::handleCollision(PolarBear& bear, float dt, const TileMap& map)
 {
-    applyGravity(bear, dt);
-    applyHorizontalMovement(bear, dt, map);
-    
-    // Update position with collision detection
+    // Horizontal collision
     bear.x += bear.vx * dt;
 
     const int samples = 10;
@@ -105,7 +107,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
         }
     }
 
-    // Vertical movement
+    // Vertical collision
     bear.y += bear.vy * dt;
 
     bear.onGround = false;
@@ -153,7 +155,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
     }
 }
 
-void NormalMovementState::updateAnimation(PolarBear& bear, float dt)
+void MovementComponent::updateAnimation(PolarBear& bear, float dt)
 {
     if (bear.vx != 0)
     {
