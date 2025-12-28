@@ -256,18 +256,17 @@ void Game::loadAssets()
     // Reset renderer to game mode (undo world map scaling)
     // Use the already-queried actual current window size
     
-    // CRITICAL: Reset scale FIRST before changing logical size to avoid state accumulation
-    SDL_RenderSetScale(renderer, 1.0f, 1.0f);
+    // Set logical size to window size and camera to window size
+    SDL_RenderSetLogicalSize(renderer, actualWindowWidth, actualWindowHeight);
     
-    // Set logical size to base game resolution (same as init)
-    const int logicalWidth = 320;
-    const int logicalHeight = 240;
-    SDL_RenderSetLogicalSize(renderer, logicalWidth, logicalHeight);
+    // Scale factor to make 320x240 content fill the window
+    float scaleX = static_cast<float>(actualWindowWidth) / 320.0f;
+    float scaleY = static_cast<float>(actualWindowHeight) / 240.0f;
+    SDL_RenderSetScale(renderer, scaleX, scaleY);
     
-    // Camera always sees the same logical area based on zoom level
-    // Camera dimensions are determined by logical size and config zoom only
-    camera.width  = static_cast<int>(logicalWidth / config.cameraZoom);
-    camera.height = static_cast<int>(logicalHeight / config.cameraZoom);
+    // Camera is window size (sees 320x240 worth of world but at window resolution)
+    camera.width  = static_cast<int>(320 / config.cameraZoom);
+    camera.height = static_cast<int>(240 / config.cameraZoom);
 
     // Set the world size for camera bounds to the full map dimensions.
     // Map coordinates are 0-based, so actual pixel size is (width) * tileSize
@@ -590,6 +589,12 @@ void Game::handleInput()
             {
                 running = false;
             }
+            else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            {
+                // Update world map rendering when window is resized
+                SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+                SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
+            }
             worldMap.handleEvent(e);
             
             // Also check for selection (Enter/J key)
@@ -834,6 +839,33 @@ void Game::handleInput()
 // Updates game state: player physics, enemy behavior, collisions, and effects.
 void Game::update(float dt)
 {
+    // Check if window has been resized
+    int currentWindowWidth = 0, currentWindowHeight = 0;
+    SDL_GetWindowSize(window, &currentWindowWidth, &currentWindowHeight);
+    if (currentWindowWidth != windowWidth || currentWindowHeight != windowHeight)
+    {
+        windowWidth = currentWindowWidth;
+        windowHeight = currentWindowHeight;
+        
+        if (config.showWorldMap)
+        {
+            // World map: set logical size to match window
+            SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
+        }
+        else
+        {
+            // Stage gameplay: update logical size and scale to fill window
+            SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
+            float scaleX = static_cast<float>(windowWidth) / 320.0f;
+            float scaleY = static_cast<float>(windowHeight) / 240.0f;
+            SDL_RenderSetScale(renderer, scaleX, scaleY);
+            
+            // Camera still sees 320x240 worth of world
+            camera.width  = static_cast<int>(320 / config.cameraZoom);
+            camera.height = static_cast<int>(240 / config.cameraZoom);
+        }
+    }
+    
     // Update intro cutscene
     if (showIntroCutscene)
     {
@@ -1597,17 +1629,21 @@ void Game::render()
         int texW = 0, texH = 0;
         SDL_QueryTexture(backgroundTexture, nullptr, nullptr, &texW, &texH);
 
-        // Calculate scaling to fill the camera view
-        float scaleX = static_cast<float>(camera.width) / texW;
-        float scaleY = static_cast<float>(camera.height) / texH;
+        // Background fills 320x240 logical space
+        const int logicalW = 320;
+        const int logicalH = 240;
+
+        // Calculate scaling to fill logical viewport
+        float scaleX = static_cast<float>(logicalW) / texW;
+        float scaleY = static_cast<float>(logicalH) / texH;
         float scale  = std::max(scaleX, scaleY);
 
         int scaledW = static_cast<int>(texW * scale);
         int scaledH = static_cast<int>(texH * scale);
 
-        // Center the scaled background in camera view
-        int offsetX = (camera.width - scaledW) / 2;
-        int offsetY = (camera.height - scaledH) / 2;
+        // Center the scaled background
+        int offsetX = (logicalW - scaledW) / 2;
+        int offsetY = (logicalH - scaledH) / 2;
 
         SDL_Rect dest{offsetX, offsetY, scaledW, scaledH};
         SDL_RenderCopy(renderer, backgroundTexture, nullptr, &dest);
