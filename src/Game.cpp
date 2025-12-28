@@ -286,6 +286,10 @@ void Game::loadAssets()
     polarBear.loadWaterWalkTexture(renderer, polarPath + "polar-bear-water-walking.png");
     polarBear.loadWaterJumpTexture(renderer, polarPath + "polar-bear-water-jump.png");
     polarBear.loadWaterSwimTexture(renderer, polarPath + "polar-bear-water-swimming.png");
+
+    polarBear.loadWindWalkTexture(renderer, polarPath + "polar-bear-wind-walking.png");
+    polarBear.loadWindJumpTexture(renderer, polarPath + "polar-bear-wind-jump.png");
+
     // Default to non-element; allow dev override via --element
     polarBear.setElement(PolarBear::Element::None);
     std::string elem = config.startElement;
@@ -295,6 +299,10 @@ void Game::loadAssets()
     if (elem == "water")
     {
         polarBear.setElement(PolarBear::Element::Water);
+    }
+    else if (elem == "wind")
+    {
+        polarBear.setElement(PolarBear::Element::Wind);
     }
     // Enable climb skill and texture if configured
     polarBear.canClimb = config.enableClimbSkill;

@@ -70,6 +70,9 @@ class TileMap
     // Check if a world-space position is inside a water tile
     bool isWaterAtWorld(float worldX, float worldY) const;
 
+    // Check if a world-space position is inside a wind tile
+    bool isWindAtWorld(float worldX, float worldY) const;
+
     // Get all tiles marked as enemy spawn points
     std::vector<const Tile*> getEnemySpawnTiles() const;
 

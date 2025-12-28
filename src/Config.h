@@ -25,7 +25,7 @@ struct Config
     bool worldMapDebug    = false;  // draw target markers on world map
     bool enableClimbSkill = false;  // enable player climbing ability (dev option)
 
-    // Element selection (dev): "none" (default), "water"
+    // Element selection (dev): "none" (default), "water", "wind"
     std::string startElement = "none";
 };
 

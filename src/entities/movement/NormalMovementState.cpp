@@ -105,6 +105,20 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
         }
     }
 
+    // Apply wind float if equipped with Wind armor and inside wind tiles
+    if (bear.element == PolarBear::Element::Wind)
+    {
+        float cx = bear.x + bear.spriteWidth * 0.5f;
+        float cy = bear.y + bear.spriteHeight * 0.5f;
+        if (map.isWindAtWorld(cx, cy))
+        {
+            // Float upward gently
+            const float windLiftSpeed = 120.0f;
+            bear.vy = -windLiftSpeed;
+            bear.onGround = false;
+        }
+    }
+
     // Vertical movement
     bear.y += bear.vy * dt;
 

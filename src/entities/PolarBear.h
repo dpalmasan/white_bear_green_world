@@ -55,6 +55,10 @@ class PolarBear
     SDL_Texture* waterJumpTexture = nullptr;
     SDL_Texture* waterSwimTexture = nullptr;
 
+    // Elemental variants: wind
+    SDL_Texture* windWalkTexture = nullptr;
+    SDL_Texture* windJumpTexture = nullptr;
+
     // Sprite dimensions (pixels).
     int spriteWidth  = 64;
     int spriteHeight = 64;
@@ -163,6 +167,17 @@ class PolarBear
     int waterSwimHeight = 36;
     float swimFrameTime = 0.1f;
 
+    // Frame metadata for wind variants
+    int windWalkFrames = 4;
+    int windWalkWidth  = 56;
+    int windWalkHeight = 36;
+    int windJumpFrames = 6;
+    int windJumpWidth  = 62;
+    int windJumpHeight = 41;
+
+    // Wind detection/state
+    bool inWind = false;
+
     // Takes damage and triggers the damage animation and invulnerability period.
     void takeDamage();
 
@@ -191,14 +206,22 @@ class PolarBear
     void loadWaterJumpTexture(SDL_Renderer* renderer, const std::string& filename);
     void loadWaterSwimTexture(SDL_Renderer* renderer, const std::string& filename);
 
+    // Load wind-specific textures
+    void loadWindWalkTexture(SDL_Renderer* renderer, const std::string& filename);
+    void loadWindJumpTexture(SDL_Renderer* renderer, const std::string& filename);
+
     // Element helpers
     void setElement(Element e);
     bool isWaterEquipped() const { return element == Element::Water; }
+    bool isWindEquipped() const { return element == Element::Wind; }
 
     // Water detection and swimming control
     int waterCoverageCount(const TileMap& map) const;
     void setSwimmingState(bool inWater, bool swimButtonPressed);
     bool isSwimming() const { return swimming; }
+
+    // Wind detection helper
+    int windCoverageCount(const TileMap& map) const;
 
     // Initiates a slash attack.
     void startAttack();

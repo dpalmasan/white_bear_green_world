@@ -380,6 +380,38 @@ bool TileMap::isWaterAtWorld(float worldX, float worldY) const
     return false;
 }
 
+// Check if a world position is inside a wind tile
+bool TileMap::isWindAtWorld(float worldX, float worldY) const
+{
+    if (worldX < 0 || worldY < 0)
+        return false;
+
+    int tileX = static_cast<int>(worldX) / tileSize;
+    int tileY = static_cast<int>(worldY) / tileSize;
+
+    if (tileX < 0 || tileX >= width || tileY < 0 || tileY >= height)
+        return false;
+
+    for (const auto& layer : layers)
+    {
+        for (const auto& tile : layer.tiles)
+        {
+            if (tile.x == tileX && tile.y == tileY)
+            {
+                // Marker tiles should not affect wind checks
+                if (!tile.enemyType.empty() || tile.polarBearSpawn || !tile.powerUp.empty() ||
+                    tile.endOfArea)
+                    continue;
+
+                if (tile.is_wind)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 // Get all tiles marked as enemy spawn points
 std::vector<const Tile*> TileMap::getEnemySpawnTiles() const
 {

@@ -185,6 +185,42 @@ void PolarBear::loadWaterSwimTexture(SDL_Renderer* renderer, const std::string& 
     }
 }
 
+void PolarBear::loadWindWalkTexture(SDL_Renderer* renderer, const std::string& filename)
+{
+    SDL_Surface* surface = IMG_Load(filename.c_str());
+    if (!surface)
+    {
+        std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        return;
+    }
+
+    windWalkTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!windWalkTexture)
+    {
+        std::cerr << "Failed to create wind walk texture: " << SDL_GetError() << "\n";
+    }
+}
+
+void PolarBear::loadWindJumpTexture(SDL_Renderer* renderer, const std::string& filename)
+{
+    SDL_Surface* surface = IMG_Load(filename.c_str());
+    if (!surface)
+    {
+        std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        return;
+    }
+
+    windJumpTexture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    if (!windJumpTexture)
+    {
+        std::cerr << "Failed to create wind jump texture: " << SDL_GetError() << "\n";
+    }
+}
+
 void PolarBear::setElement(Element e)
 {
     // Capture baseline once (non-element frames/dimensions)
@@ -204,16 +240,37 @@ void PolarBear::setElement(Element e)
     if (element == Element::Water)
     {
         // Use water variants when available
-        if (waterWalkTexture)
+        if (waterWalkTexture) {
             texture = waterWalkTexture;
-        if (waterJumpTexture)
+            spriteHeight = waterWalkHeight;
+            spriteWidth  = waterWalkWidth;
+        }
+        if (waterJumpTexture) {
+            spriteWidth  = waterJumpWidth;
+            spriteHeight = waterJumpHeight;
+        }
             jumpTexture = waterJumpTexture;
 
-        // Set sprite box to encompass the largest water frame (jump height)
-        spriteWidth  = waterJumpWidth;
-        spriteHeight = waterJumpHeight;
         numFrames    = waterWalkFrames;
         jumpFrames   = waterJumpFrames;
+
+        // Reset animation state
+        frame      = 0;
+        frameTimer = 0.0f;
+    }
+    else if (element == Element::Wind)
+    {
+        // Use wind variants when available
+        if (windWalkTexture)
+            texture = windWalkTexture;
+        if (windJumpTexture)
+            jumpTexture = windJumpTexture;
+
+        // Set sprite box to wind frame size if available
+        spriteWidth  = windJumpWidth;
+        spriteHeight = windJumpHeight;
+        numFrames    = windWalkFrames;
+        jumpFrames   = windJumpFrames;
 
         // Reset animation state
         frame      = 0;
@@ -502,6 +559,13 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
         currentHeight    = waterWalkHeight;
     }
 
+    if (isWindEquipped())   
+    {
+        currentNumFrames = windWalkFrames;
+        currentWidth     = windWalkWidth;
+        currentHeight    = windWalkHeight;
+    }
+
     if (isDamaged && jumpTexture)
     {
         // Use damage animation (reversed jump frames with counter-clockwise rotation)
@@ -559,6 +623,12 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
         {
             currentWidth  = waterJumpWidth;
             currentHeight = waterJumpHeight;
+        }
+
+        if (isWindEquipped())
+        {
+            currentWidth  = windJumpWidth;
+            currentHeight = windJumpHeight;
         }
 
         // Map vertical velocity to frame with specific ranges:
