@@ -280,7 +280,7 @@ void Game::loadAssets()
     polarBear.spriteWidth  = 51;
     polarBear.spriteHeight = 40;
     polarBear.numFrames    = 4;
-    polarBear.frameTime    = 0.15f;
+    polarBear.frameTime    = 0.2f;
     polarBear.loadTexture(renderer, polarPath + "bear.png");
     polarBear.loadJumpTexture(renderer, polarPath + "bear-jump.png");
     polarBear.loadAttackTexture(renderer, polarPath + "bear-attack.png");
@@ -309,11 +309,15 @@ void Game::loadAssets()
         polarBear.setElement(PolarBear::Element::Wind);
     }
 
-    // Initialize bear components (component-based architecture)
-    polarBear.addComponent(std::make_unique<MovementComponent>());
-    polarBear.addComponent(std::make_unique<WindArmorComponent>());
-    polarBear.addComponent(std::make_unique<SwimmingComponent>());
-    polarBear.addComponent(std::make_unique<ClimbingComponent>());
+    // Initialize bear components only if not already added (don't re-add on stage transitions)
+    if (polarBear.components.empty())
+    {
+        polarBear.runSpeed = 65.0f;  // Set movement speed once
+        polarBear.addComponent(std::make_unique<MovementComponent>());
+        polarBear.addComponent(std::make_unique<WindArmorComponent>());
+        polarBear.addComponent(std::make_unique<SwimmingComponent>());
+        polarBear.addComponent(std::make_unique<ClimbingComponent>());
+    }
 
     // Enable climb skill and texture if configured
     polarBear.canClimb = config.enableClimbSkill;
@@ -818,13 +822,19 @@ void Game::handleInput()
             // Check for wind jump first (at top of wind with free space above)
             if (polarBear.isWindEquipped() && polarBear.inWind)
             {
-                // Wind jump: launch upward out of wind current (16 pixels higher than normal)
-                polarBear.vy = -464.0f;
+                // Wind jump from wind tile: 25% higher than normal jump
+                polarBear.vy = -318.0f * 1.25f;
                 polarBear.onGround = false;
             }
             else if (polarBear.onGround)
             {
-                polarBear.vy       = -400.0f;
+                // Normal ground jump - apply 25% boost if wearing wind armor
+                float jumpVelocity = -318.0f;
+                if (polarBear.isWindEquipped())
+                {
+                    jumpVelocity *= 1.25f;
+                }
+                polarBear.vy       = jumpVelocity;
                 polarBear.onGround = false;
             }
             else if (polarBear.isClimbing)

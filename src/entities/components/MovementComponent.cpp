@@ -22,7 +22,7 @@ void MovementComponent::update(PolarBear& bear, float dt, const TileMap& map)
 
 void MovementComponent::applyGravity(PolarBear& bear, float dt)
 {
-    const float GRAVITY = 1000.0f;
+    const float GRAVITY = 840.0f;
     bear.vy += GRAVITY * dt;
 }
 
@@ -36,7 +36,6 @@ void MovementComponent::applyHorizontalMovement(PolarBear& bear, float dt, const
     bool onSlippery    = bear.onGround && (map.isSlipperyAtWorld(footCenter, footY) ||
                                         map.isSlipperyAtWorld(footLeft, footY) ||
                                         map.isSlipperyAtWorld(footRight, footY));
-    const float runspd = 102.0f;
 
     if (onSlippery)
     {
@@ -64,7 +63,13 @@ void MovementComponent::applyHorizontalMovement(PolarBear& bear, float dt, const
     }
     else
     {
-        bear.vx = bear.moveIntent * runspd;
+        // Apply 25% speed boost when wearing wind armor
+        float speed = bear.runSpeed;
+        if (bear.element == PolarBear::Element::Wind)
+        {
+            speed *= 1.25f;
+        }
+        bear.vx = bear.moveIntent * speed;
     }
 }
 

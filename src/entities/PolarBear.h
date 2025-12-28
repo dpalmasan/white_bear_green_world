@@ -154,6 +154,7 @@ class PolarBear
     float swimUpSpeed   = 140.0f;
     float swimSinkSpeed = 80.0f;
     float swimRunSpeed  = 70.0f;
+    float runSpeed      = 60.0f;  // Ground movement speed
 
     // Frame metadata for water variants
     int waterWalkFrames = 4;
