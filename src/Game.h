@@ -17,6 +17,7 @@
 #include "Config.h"
 #include "Cutscene.h"
 #include "Explosion.h"
+#include "GameState.h"
 #include "TileMap.h"
 #include "levels/StageRegistry.h"
 #include "TitleScreen.h"
@@ -92,6 +93,8 @@ class Game
     const std::string ASSET_PATH = "../../assets/";  // Deprecated; use config.assetPath instead
     std::string stageName        = StageNames::SnowyCliffs;  // Stage to load (e.g., "snowy-cliffs", "dev_stage").
     Config config;                                   // Centralized configuration
+    GameState gameState;                             // Persistent game state (abilities, progress, collectibles)
+    std::string saveFilePath = "savegame.dat";       // Path to save file (binary format)
 
     Mix_Music* backgroundMusic = nullptr;  // Background music for the current stage.
     Mix_Music* powerUpMusic    = nullptr;  // Short cue played on pickup
