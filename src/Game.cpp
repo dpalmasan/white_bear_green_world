@@ -256,6 +256,12 @@ void Game::loadAssets()
     explosionSound = Mix_LoadWAV((config.assetPath + "sfx/explosion.wav").c_str());
     if (!explosionSound)
         std::cerr << "Failed to load explosion.wav: " << Mix_GetError() << "\n";
+    confirmSound = Mix_LoadWAV((config.assetPath + "sfx/confirm.wav").c_str());
+    if (!confirmSound)
+        std::cerr << "Failed to load confirm.wav: " << Mix_GetError() << "\n";
+    cancelSound = Mix_LoadWAV((config.assetPath + "sfx/cancel.wav").c_str());
+    if (!cancelSound)
+        std::cerr << "Failed to load cancel.wav: " << Mix_GetError() << "\n";
 
     // Reset renderer to game mode (undo world map scaling)
     // Use the already-queried actual current window size
@@ -324,6 +330,70 @@ void Game::loadAssets()
     if (polarBear.canClimb)
     {
         polarBear.loadClimbTexture(renderer, polarPath + std::string("bear-climbing.png"));
+    }
+
+    // Initialize GameState from command-line options (dev mode)
+    // Parse --skills option
+    if (!config.devSkills.empty())
+    {
+        std::string skillsList = config.devSkills;
+        size_t pos = 0;
+        while ((pos = skillsList.find(',')) != std::string::npos)
+        {
+            std::string skill = skillsList.substr(0, pos);
+            if (skill == "slash")
+                gameState.unlockSlash();
+            else if (skill == "climb")
+                gameState.unlockClimb();
+            else if (skill == "dash")
+                gameState.unlockDash();
+            else if (skill == "ice_breath")
+                gameState.unlockIceBreath();
+            skillsList.erase(0, pos + 1);
+        }
+        // Handle last skill (or only skill if no commas)
+        if (skillsList == "slash")
+            gameState.unlockSlash();
+        else if (skillsList == "climb")
+            gameState.unlockClimb();
+        else if (skillsList == "dash")
+            gameState.unlockDash();
+        else if (skillsList == "ice_breath")
+            gameState.unlockIceBreath();
+    }
+    else
+    {
+        // Default: always have slash
+        gameState.unlockSlash();
+    }
+
+    // Parse --armors option
+    if (!config.devArmors.empty())
+    {
+        std::string armorsList = config.devArmors;
+        size_t pos = 0;
+        while ((pos = armorsList.find(',')) != std::string::npos)
+        {
+            std::string armor = armorsList.substr(0, pos);
+            if (armor == "earth")
+                gameState.unlockEarthArmor();
+            else if (armor == "wind")
+                gameState.unlockWindArmor();
+            else if (armor == "fire")
+                gameState.unlockFireArmor();
+            else if (armor == "water")
+                gameState.unlockWaterArmor();
+            armorsList.erase(0, pos + 1);
+        }
+        // Handle last armor (or only armor if no commas)
+        if (armorsList == "earth")
+            gameState.unlockEarthArmor();
+        else if (armorsList == "wind")
+            gameState.unlockWindArmor();
+        else if (armorsList == "fire")
+            gameState.unlockFireArmor();
+        else if (armorsList == "water")
+            gameState.unlockWaterArmor();
     }
 
     // Set initial player position and state. If a polar_bear_spawn marker exists, use it.
@@ -403,21 +473,36 @@ void Game::loadAssets()
         std::cerr << "Failed to load " << backgroundFilename << ": " << IMG_GetError() << "\n";
     }
 
-    // Load menu texture for pause screen
-    SDL_Surface *menuSurface = IMG_Load((backgroundsPath + "menu.png").c_str());
-    if (menuSurface)
-    {
-        menuTexture = SDL_CreateTextureFromSurface(renderer, menuSurface);
-        SDL_FreeSurface(menuSurface);
-        if (!menuTexture)
+    // Load menu system textures (Tab menu)
+    std::string menuPath = config.assetPath + "images/menu/";
+    auto loadMenuTexture = [&](SDL_Texture*& tex, const std::string& filename) {
+        SDL_Surface* surf = IMG_Load((menuPath + filename).c_str());
+        if (surf)
         {
-            std::cerr << "Failed to create menu texture: " << SDL_GetError() << "\n";
+            tex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_FreeSurface(surf);
+            if (!tex)
+                std::cerr << "Failed to create texture from " << filename << ": " << SDL_GetError() << "\n";
         }
-    }
-    else
-    {
-        std::cerr << "Failed to load menu.png: " << IMG_GetError() << "\n";
-    }
+        else
+        {
+            std::cerr << "Failed to load " << filename << ": " << IMG_GetError() << "\n";
+        }
+    };
+
+    loadMenuTexture(menuBackgroundTexture, "menu_background.png");
+    loadMenuTexture(slashIconTexture, "slash.png");
+    loadMenuTexture(climbIconTexture, "climb.png");
+    loadMenuTexture(iceBreathIconTexture, "ice_breath.png");
+    loadMenuTexture(dashIconTexture, "dash.png");
+    loadMenuTexture(earthArmorTexture, "earth_armor.png");
+    loadMenuTexture(windArmorTexture, "wind_armor.png");
+    loadMenuTexture(fireArmorTexture, "fire_armor.png");
+    loadMenuTexture(waterArmorTexture, "water_armor.png");
+    loadMenuTexture(earthArmorCursorTexture, "earth_armor_cursor.png");
+    loadMenuTexture(windArmorCursorTexture, "wind_armor_cursor.png");
+    loadMenuTexture(fireArmorCursorTexture, "fire_armor_cursor.png");
+    loadMenuTexture(waterArmorCursorTexture, "water_armor_cursor.png");
 
     // Spawn enemies from map tiles marked with "enemy" attribute
     for (const auto *tile : enemySpawnTiles)
@@ -867,6 +952,130 @@ void Game::handleInput()
         else
         {
             Mix_VolumeMusic(config.musicVolume);
+        }
+    }
+
+    // Menu (Tab key) - toggle menu (disabled during ending scene and pause)
+    if (input.isMenuPressed() && !endingStage && !paused)
+    {
+        menuOpen = !menuOpen;
+        if (menuOpen)
+        {
+            // Set cursor and equipped armor based on current armor
+            if (polarBear.element == PolarBear::Element::Earth)
+            {
+                menuArmorCursor = 0;
+                menuEquippedArmor = 0;
+            }
+            else if (polarBear.element == PolarBear::Element::Wind)
+            {
+                menuArmorCursor = 1;
+                menuEquippedArmor = 1;
+            }
+            else if (polarBear.element == PolarBear::Element::Fire)
+            {
+                menuArmorCursor = 2;
+                menuEquippedArmor = 2;
+            }
+            else if (polarBear.element == PolarBear::Element::Water)
+            {
+                menuArmorCursor = 3;
+                menuEquippedArmor = 3;
+            }
+            else
+            {
+                menuArmorCursor = 0;
+                menuEquippedArmor = -1; // No armor equipped
+            }
+        }
+    }
+
+    // Menu navigation (when menu is open)
+    if (menuOpen)
+    {
+        // Navigate armor cursor with A (left) and D (right)
+        static bool aHeld = false;
+        static bool dHeld = false;
+
+        if (input.isMovingLeft() && !aHeld)
+        {
+            aHeld = true;
+            menuArmorCursor = (menuArmorCursor + 3) % 4; // Move left (wrap around)
+        }
+        else if (!input.isMovingLeft())
+        {
+            aHeld = false;
+        }
+
+        if (input.isMovingRight() && !dHeld)
+        {
+            dHeld = true;
+            menuArmorCursor = (menuArmorCursor + 1) % 4; // Move right (wrap around)
+        }
+        else if (!input.isMovingRight())
+        {
+            dHeld = false;
+        }
+
+        // J key: Equip selected armor
+        static bool jHeld = false;
+        if (input.isJumping() && !jHeld)
+        {
+            jHeld = true;
+            bool armorAvailable = false;
+            
+            // Check if armor is available
+            switch (menuArmorCursor)
+            {
+                case 0: armorAvailable = gameState.hasEarthArmor(); break;
+                case 1: armorAvailable = gameState.hasWindArmor(); break;
+                case 2: armorAvailable = gameState.hasFireArmor(); break;
+                case 3: armorAvailable = gameState.hasWaterArmor(); break;
+            }
+            
+            if (armorAvailable)
+            {
+                // Equip armor
+                switch (menuArmorCursor)
+                {
+                    case 0: polarBear.setElement(PolarBear::Element::Earth); break;
+                    case 1: polarBear.setElement(PolarBear::Element::Wind); break;
+                    case 2: polarBear.setElement(PolarBear::Element::Fire); break;
+                    case 3: polarBear.setElement(PolarBear::Element::Water); break;
+                }
+                menuEquippedArmor = menuArmorCursor;
+                if (confirmSound)
+                    Mix_PlayChannel(-1, confirmSound, 0);
+            }
+            else
+            {
+                // Armor not available
+                if (cancelSound)
+                    Mix_PlayChannel(-1, cancelSound, 0);
+            }
+        }
+        else if (!input.isJumping())
+        {
+            jHeld = false;
+        }
+        
+        // K key: Unequip armor
+        static bool kHeld = false;
+        if (input.isAttacking() && !kHeld)
+        {
+            kHeld = true;
+            if (menuEquippedArmor != -1)
+            {
+                // Unequip armor
+                polarBear.setElement(PolarBear::Element::None);
+                menuEquippedArmor = -1;
+                if (cancelSound)
+                    Mix_PlayChannel(-1, cancelSound, 0);
+            }
+        }
+        else if (!input.isAttacking())
+        {
+            kHeld = false;
         }
     }
 
@@ -1863,6 +2072,69 @@ void Game::render()
         SDL_RenderCopy(renderer, menuTexture, nullptr, &dest);
     }
 
+    // Render Tab menu (skills and armors)
+    if (menuOpen && menuBackgroundTexture)
+    {
+        // Render background
+        SDL_Rect dest{0, 0, camera.width, camera.height};
+        SDL_RenderCopy(renderer, menuBackgroundTexture, nullptr, &dest);
+
+        // Render skills (images have built-in positioning)
+        SDL_Rect fullScreenDest{0, 0, camera.width, camera.height};
+        
+        // Slash (always shown)
+        if (slashIconTexture)
+            SDL_RenderCopy(renderer, slashIconTexture, nullptr, &fullScreenDest);
+        
+        // Climb (if learned)
+        if (gameState.hasClimb() && climbIconTexture)
+            SDL_RenderCopy(renderer, climbIconTexture, nullptr, &fullScreenDest);
+        
+        // Ice Breath (if learned)
+        if (gameState.hasIceBreath() && iceBreathIconTexture)
+            SDL_RenderCopy(renderer, iceBreathIconTexture, nullptr, &fullScreenDest);
+        
+        // Dash (if learned)
+        if (gameState.hasDash() && dashIconTexture)
+            SDL_RenderCopy(renderer, dashIconTexture, nullptr, &fullScreenDest);
+
+        // Render equipped armor only (if any)
+        if (menuEquippedArmor == 0 && earthArmorTexture)
+            SDL_RenderCopy(renderer, earthArmorTexture, nullptr, &fullScreenDest);
+        else if (menuEquippedArmor == 1 && windArmorTexture)
+            SDL_RenderCopy(renderer, windArmorTexture, nullptr, &fullScreenDest);
+        else if (menuEquippedArmor == 2 && fireArmorTexture)
+            SDL_RenderCopy(renderer, fireArmorTexture, nullptr, &fullScreenDest);
+        else if (menuEquippedArmor == 3 && waterArmorTexture)
+            SDL_RenderCopy(renderer, waterArmorTexture, nullptr, &fullScreenDest);
+
+        // Render armor cursor based on selection (cursor images have built-in offsets)
+        SDL_Texture* cursorTex = nullptr;
+
+        switch (menuArmorCursor)
+        {
+            case 0: // Earth
+                cursorTex = earthArmorCursorTexture;
+                break;
+            case 1: // Wind
+                cursorTex = windArmorCursorTexture;
+                break;
+            case 2: // Fire
+                cursorTex = fireArmorCursorTexture;
+                break;
+            case 3: // Water
+                cursorTex = waterArmorCursorTexture;
+                break;
+        }
+
+        if (cursorTex)
+        {
+            // Render cursor at full screen with built-in positioning
+            SDL_Rect cursorDest{0, 0, camera.width, camera.height};
+            SDL_RenderCopy(renderer, cursorTex, nullptr, &cursorDest);
+        }
+    }
+
     // Render end scene overlay when in ending stage
     if (endingStage && endSceneTexture)
     {
@@ -1989,6 +2261,32 @@ void Game::clean()
         SDL_DestroyTexture(backgroundTexture);
     if (menuTexture)
         SDL_DestroyTexture(menuTexture);
+    if (menuBackgroundTexture)
+        SDL_DestroyTexture(menuBackgroundTexture);
+    if (slashIconTexture)
+        SDL_DestroyTexture(slashIconTexture);
+    if (climbIconTexture)
+        SDL_DestroyTexture(climbIconTexture);
+    if (iceBreathIconTexture)
+        SDL_DestroyTexture(iceBreathIconTexture);
+    if (dashIconTexture)
+        SDL_DestroyTexture(dashIconTexture);
+    if (earthArmorTexture)
+        SDL_DestroyTexture(earthArmorTexture);
+    if (windArmorTexture)
+        SDL_DestroyTexture(windArmorTexture);
+    if (fireArmorTexture)
+        SDL_DestroyTexture(fireArmorTexture);
+    if (waterArmorTexture)
+        SDL_DestroyTexture(waterArmorTexture);
+    if (earthArmorCursorTexture)
+        SDL_DestroyTexture(earthArmorCursorTexture);
+    if (windArmorCursorTexture)
+        SDL_DestroyTexture(windArmorCursorTexture);
+    if (fireArmorCursorTexture)
+        SDL_DestroyTexture(fireArmorCursorTexture);
+    if (waterArmorCursorTexture)
+        SDL_DestroyTexture(waterArmorCursorTexture);
     if (robotAttackTexture)
         SDL_DestroyTexture(robotAttackTexture);
     if (roboFireballTexture)

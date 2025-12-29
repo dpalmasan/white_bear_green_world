@@ -103,6 +103,14 @@ Config parseArgs(int argc, char* argv[])
         {
             cfg.startElement = argv[++i];
         }
+        else if (arg == "--armors" && i + 1 < argc)
+        {
+            cfg.devArmors = argv[++i];
+        }
+        else if (arg == "--skills" && i + 1 < argc)
+        {
+            cfg.devSkills = argv[++i];
+        }
     }
 
     return cfg;

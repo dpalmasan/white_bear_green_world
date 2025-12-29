@@ -36,6 +36,11 @@ void Input::handleEvents(bool& running)
                     pausePressed = true;
                     pauseButtonHeld = true;
                 }
+                if (key == SDLK_TAB && !menuButtonHeld)
+                {
+                    menuPressed = true;
+                    menuButtonHeld = true;
+                }
             }
         }
         else if (e.type == SDL_KEYUP)
@@ -43,6 +48,8 @@ void Input::handleEvents(bool& running)
             const SDL_Keycode key = e.key.keysym.sym;
             if (key == SDLK_ESCAPE)
                 pauseButtonHeld = false;
+            if (key == SDLK_TAB)
+                menuButtonHeld = false;
         }
     }
 
@@ -85,4 +92,5 @@ void Input::resetFrameEvents()
     attackPressed = false;
     pausePressed = false;
     selectPressed = false;
+    menuPressed = false;
 }

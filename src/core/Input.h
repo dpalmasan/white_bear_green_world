@@ -28,6 +28,7 @@ public:
     bool isAttacking() const { return attackPressed; }
     bool isPausePressed() const { return pausePressed; }
     bool isQuitPressed() const { return quitPressed; }
+    bool isMenuPressed() const { return menuPressed; }
     
     // Reset single-frame events
     void resetFrameEvents();
@@ -50,10 +51,12 @@ private:
     bool pausePressed = false;
     bool selectPressed = false;
     bool quitPressed = false;
+    bool menuPressed = false;
 
     // Mode tracking
     bool worldMapActive = false;
     bool jumpButtonHeld = false;
     bool attackButtonHeld = false;
     bool pauseButtonHeld = false;
+    bool menuButtonHeld = false;
 };

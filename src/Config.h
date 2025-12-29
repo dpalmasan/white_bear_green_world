@@ -27,6 +27,10 @@ struct Config
 
     // Element selection (dev): "none" (default), "water", "wind"
     std::string startElement = "none";
+
+    // Dev: comma-separated armor/skill lists
+    std::string devArmors = "";  // e.g., "earth,wind,fire,water"
+    std::string devSkills = "";  // e.g., "slash,ice_breath,climb,dash"
 };
 
 // Parse command-line arguments into a Config.
@@ -41,4 +45,6 @@ struct Config
 //   --pause-volume N
 //   --enable-climb (dev: enable climbing skill)
 //   --element NAME (dev: start with element; supports "water")
+//   --armors LIST (dev: comma-separated armors, e.g., "earth,wind,fire,water")
+//   --skills LIST (dev: comma-separated skills, e.g., "slash,ice_breath,climb,dash")
 Config parseArgs(int argc, char* argv[]);
