@@ -96,7 +96,7 @@ void RobotEnemy::render(SDL_Renderer* renderer, int camX, int camY)
         return;
 
     SDL_Rect src{currentFrame * frameW, 0, frameW, frameH};
-    SDL_Rect dst{static_cast<int>(x) - camX, static_cast<int>(y) - camY, frameW, frameH};
+    SDL_Rect dst{static_cast<int>(std::round(x)) - camX, static_cast<int>(std::round(y)) - camY, frameW, frameH};
     SDL_RendererFlip flip = flipHorizontal ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
     SDL_RenderCopyEx(renderer, currentTexture, &src, &dst, 0.0, nullptr, flip);
 }

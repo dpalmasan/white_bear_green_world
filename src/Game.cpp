@@ -822,8 +822,8 @@ void Game::handleInput()
             // Check for wind jump first (at top of wind with free space above)
             if (polarBear.isWindEquipped() && polarBear.inWind)
             {
-                // Wind jump from wind tile: 25% higher than normal jump
-                polarBear.vy = -318.0f * 1.25f;
+                // Wind jump from wind tile: 25% higher than normal jump (rounded to avoid jitter)
+                polarBear.vy = std::round(-318.0f * 1.25f);
                 polarBear.onGround = false;
             }
             else if (polarBear.onGround)
@@ -832,7 +832,7 @@ void Game::handleInput()
                 float jumpVelocity = -318.0f;
                 if (polarBear.isWindEquipped())
                 {
-                    jumpVelocity *= 1.25f;
+                    jumpVelocity = std::round(jumpVelocity * 1.25f);
                 }
                 polarBear.vy       = jumpVelocity;
                 polarBear.onGround = false;
@@ -1760,7 +1760,7 @@ void Game::render()
         {
             SDL_Rect src{0, 0, heartFrameW, heartFrameH};
             // Base heart
-            SDL_Rect dst{static_cast<int>(p.x) - camera.x, static_cast<int>(p.y) - camera.y,
+            SDL_Rect dst{static_cast<int>(std::round(p.x)) - camera.x, static_cast<int>(std::round(p.y)) - camera.y,
                          map.tileSize, map.tileSize};
             // Glow pulse: scaled copy with alpha
             float pulse     = 0.5f + 0.5f * std::sin(p.glowPhase);

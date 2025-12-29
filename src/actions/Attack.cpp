@@ -90,7 +90,7 @@ void SlashAttack::render(SDL_Renderer* renderer, int camX, int camY)
     float overallScale   = minScale + (1.0f - minScale) * eased;
 
     // Screen-space positioning using bear's last drawn position
-    int cy          = static_cast<int>(bear->y - camY) + bear->spriteHeight / 2;
+    int cy          = static_cast<int>(std::round(bear->y - camY)) + bear->spriteHeight / 2;
     const int inset = 6;
     int frontX      = bear->lastDrawX + (bear->facingRight ? bear->lastDrawW - inset : inset);
 

@@ -632,8 +632,8 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
     src.h = currentHeight;
 
     SDL_Rect dest;
-    dest.x = static_cast<int>(x - camX);
-    dest.y = static_cast<int>(y - camY);
+    dest.x = static_cast<int>(std::round(x - camX));
+    dest.y = static_cast<int>(std::round(y - camY));
     dest.w = currentWidth;
     dest.h = currentHeight;
 

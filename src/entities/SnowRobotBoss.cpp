@@ -620,8 +620,8 @@ void SnowRobotBoss::render(SDL_Renderer* renderer, const Camera& camera)
 {
     const int frameW = 64;
     const int frameH = 64;
-    int drawX        = static_cast<int>(worldX) - camera.x;
-    int drawY        = static_cast<int>(worldY + levitateOffset) - camera.y;
+    int drawX        = static_cast<int>(std::round(worldX)) - camera.x;
+    int drawY        = static_cast<int>(std::round(worldY + levitateOffset)) - camera.y;
     SDL_Rect dst{drawX, drawY, frameW, frameH};
 
     // Flip robot when player is to the right

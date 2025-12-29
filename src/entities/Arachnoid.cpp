@@ -80,7 +80,7 @@ void Arachnoid::render(SDL_Renderer* renderer, int camX, int camY)
         return;
 
     SDL_Rect src{frame * width, 0, width, height};
-    SDL_Rect dst{static_cast<int>(x) - camX, static_cast<int>(y) - camY + 6, width, height};
+    SDL_Rect dst{static_cast<int>(std::round(x)) - camX, static_cast<int>(std::round(y)) - camY + 6, width, height};
     SDL_RendererFlip flip = flipHorizontal ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
     SDL_RenderCopyEx(renderer, texture, &src, &dst, 0.0, nullptr, flip);
 }
