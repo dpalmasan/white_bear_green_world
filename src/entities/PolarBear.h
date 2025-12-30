@@ -12,7 +12,7 @@
 #include <string>
 
 #include "../actions/Attack.h"
-#include "TileMap.h"
+#include "../systems/TileMap.h"
 #include "components/BearComponent.h"
 
 // Forward declarations.

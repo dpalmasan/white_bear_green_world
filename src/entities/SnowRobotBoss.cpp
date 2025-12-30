@@ -12,8 +12,8 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "../Explosion.h"
-#include "../TileMap.h"
+#include "../effects/Explosion.h"
+#include "../systems/TileMap.h"
 #include "../core/Camera.h"
 #include "Fireball.h"
 #include "PolarBear.h"

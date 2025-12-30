@@ -14,15 +14,15 @@
 #include <string>
 #include <vector>
 
-#include "Config.h"
-#include "Cutscene.h"
-#include "Explosion.h"
-#include "GameState.h"
-#include "TileMap.h"
+#include "systems/Config.h"
+#include "screens/Cutscene.h"
+#include "effects/Explosion.h"
+#include "systems/GameState.h"
+#include "systems/TileMap.h"
 #include "levels/StageRegistry.h"
-#include "TitleScreen.h"
+#include "screens/TitleScreen.h"
 #include "ui/Menu.h"
-#include "WorldMap.h"
+#include "screens/WorldMap.h"
 #include "core/Camera.h"
 #include "core/Input.h"
 #include "entities/Arachnoid.h"

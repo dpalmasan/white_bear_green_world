@@ -3,7 +3,7 @@
 
 #include "WindArmorComponent.h"
 #include "../PolarBear.h"
-#include "../../TileMap.h"
+#include "../../systems/TileMap.h"
 
 void WindArmorComponent::update(PolarBear& bear, float dt, const TileMap& map)
 {

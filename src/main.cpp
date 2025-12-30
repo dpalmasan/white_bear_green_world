@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "Config.h"
+#include "systems/Config.h"
 #include "Game.h"
 
 // Program entry point.

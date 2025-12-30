@@ -3,7 +3,7 @@
 
 #include "SwimmingComponent.h"
 #include "../PolarBear.h"
-#include "../../TileMap.h"
+#include "../../systems/TileMap.h"
 
 #include <algorithm>
 

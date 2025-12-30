@@ -3,7 +3,7 @@
 
 #include "ClimbingComponent.h"
 #include "../PolarBear.h"
-#include "../../TileMap.h"
+#include "../../systems/TileMap.h"
 
 #include <cmath>
 #include <algorithm>

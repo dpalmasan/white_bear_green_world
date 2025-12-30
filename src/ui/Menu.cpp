@@ -1,6 +1,6 @@
 #include "Menu.h"
 #include "../entities/PolarBear.h"
-#include "../GameState.h"
+#include "../systems/GameState.h"
 #include "../core/Input.h"
 #include "../core/Camera.h"
 

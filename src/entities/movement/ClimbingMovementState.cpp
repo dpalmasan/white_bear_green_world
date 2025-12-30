@@ -8,7 +8,7 @@
 #include <cmath>
 
 #include "../PolarBear.h"
-#include "../../TileMap.h"
+#include "../../systems/TileMap.h"
 
 void ClimbingMovementState::onEnter(PolarBear& bear)
 {

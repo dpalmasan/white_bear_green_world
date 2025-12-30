@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include "../PolarBear.h"
-#include "../../TileMap.h"
+#include "../../systems/TileMap.h"
 
 void SwimmingMovementState::onEnter(PolarBear& bear)
 {

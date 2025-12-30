@@ -23,20 +23,25 @@
 src/
 ├── main.cpp                    # Entry point
 ├── Game.{h,cpp}               # Main game loop, rendering, state management
-├── GameState.{h,cpp}          # Persistent state (binary save format with encryption)
-├── Config.{h,cpp}             # Command-line argument parsing
-├── TileMap.{h,cpp}            # Level loading from JSON
-├── AssetManager.{h,cpp}       # Resource management
-├── Cutscene.{h,cpp}           # Intro cutscenes
-├── TitleScreen.{h,cpp}        # Main menu
-├── WorldMap.{h,cpp}           # Level selection screen
-├── Explosion.h                # Particle effects
-├── core/
+├── systems/                   # Engine/infrastructure systems
+│   ├── AssetManager.{h,cpp}   # Resource management
+│   ├── Config.{h,cpp}         # Command-line argument parsing
+│   ├── GameState.{h,cpp}      # Persistent state (binary save format with encryption)
+│   └── TileMap.{h,cpp}        # Level loading from JSON
+├── screens/                   # Full-screen UI states
+│   ├── Cutscene.{h,cpp}       # Intro cutscenes
+│   ├── TitleScreen.{h,cpp}    # Main menu
+│   └── WorldMap.{h,cpp}       # Level selection screen
+├── effects/                   # Visual effects
+│   └── Explosion.h            # Particle effects
+├── ui/                        # In-game UI components
+│   └── Menu.{h,cpp}           # Tab menu for armor/skill selection
+├── core/                      # Core game mechanics
 │   ├── Camera.{h,cpp}         # Viewport tracking
 │   ├── Collision.{h,cpp}      # Physics and collision detection
 │   ├── Input.{h,cpp}          # Keyboard input handling (SDL_SCANCODE)
 │   └── Time.{h,cpp}           # Delta time management
-├── entities/
+├── entities/                  # Game entities
 │   ├── PolarBear.{h,cpp}      # Player character with elemental armors
 │   ├── Boss.h                 # Boss interface
 │   ├── SnowRobotBoss.{h,cpp}  # First boss implementation
@@ -45,13 +50,13 @@ src/
 │   ├── FrenzyWolf.{h,cpp}     # Fast melee enemy
 │   ├── Arachnoid.{h,cpp}      # Spider enemy
 │   ├── IdleEnemy.h            # Stationary enemy
-│   └── Fireball.h             # Projectile
-├── actions/
+│   ├── Fireball.h             # Projectile
+│   ├── components/            # Entity component system
+│   └── movement/              # Movement state machines
+├── actions/                   # Player actions
 │   └── Attack.{h,cpp}         # Slash attack system
-├── levels/
-│   └── StageRegistry.{h,cpp}  # Stage name constants
-└── ui/
-    └── Menu.{h,cpp}           # Tab menu for armor/skill selection
+└── levels/                    # Level/stage management
+    └── StageRegistry.{h,cpp}  # Stage name constants
 
 assets/
 ├── levels/                     # JSON map files (Tiled format)
@@ -212,6 +217,13 @@ cmake --build build -j4
 ```
 
 ## Recent Changes (December 2025)
+
+### Source Folder Reorganization (Dec 29, 2025)
+- Created **systems/** folder for engine infrastructure (Config, GameState, TileMap, AssetManager)
+- Created **screens/** folder for full-screen UI states (Cutscene, TitleScreen, WorldMap)
+- Created **effects/** folder for visual effects (Explosion)
+- Updated all #include paths across 20+ files to reflect new structure
+- Cleaner separation: systems, screens, effects, ui, core, entities, actions, levels
 
 ### Menu System Refactor
 - Extracted 200+ lines of menu code into `Menu` class
