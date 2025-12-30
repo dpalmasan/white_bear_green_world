@@ -367,6 +367,12 @@ void Game::loadAssets()
         gameState.unlockSlash();
     }
 
+    // Apply --enable-climb flag (legacy option)
+    if (config.enableClimbSkill)
+    {
+        gameState.unlockClimb();
+    }
+
     // Parse --armors option
     if (!config.devArmors.empty())
     {
@@ -801,6 +807,144 @@ void Game::handleInput()
     // Handle all SDL events and keyboard state
     input.handleEvents(running);
 
+    // Menu (Tab key) - toggle menu (disabled during ending scene, but allow closing if already open)
+    if (input.isMenuPressed() && !endingStage && (!paused || menuOpen))
+    {
+        menuOpen = !menuOpen;
+        if (menuOpen)
+        {
+            // Pause game and lower music volume
+            paused = true;
+            Mix_VolumeMusic(config.pauseMusicVolume);
+            
+            // Set cursor and equipped armor based on current armor
+            if (polarBear.element == PolarBear::Element::Earth)
+            {
+                menuArmorCursor = 0;
+                menuEquippedArmor = 0;
+            }
+            else if (polarBear.element == PolarBear::Element::Wind)
+            {
+                menuArmorCursor = 1;
+                menuEquippedArmor = 1;
+            }
+            else if (polarBear.element == PolarBear::Element::Fire)
+            {
+                menuArmorCursor = 2;
+                menuEquippedArmor = 2;
+            }
+            else if (polarBear.element == PolarBear::Element::Water)
+            {
+                menuArmorCursor = 3;
+                menuEquippedArmor = 3;
+            }
+            else
+            {
+                menuArmorCursor = 0;
+                menuEquippedArmor = -1; // No armor equipped
+            }
+        }
+        else
+        {
+            // Unpause game and restore music volume
+            paused = false;
+            Mix_VolumeMusic(config.musicVolume);
+        }
+    }
+
+    // Process menu inputs if menu is open
+    if (menuOpen)
+    {
+        // Navigate armor cursor with A (left) and D (right)
+        static bool aHeld = false;
+        static bool dHeld = false;
+
+        if (input.isMovingLeft() && !aHeld)
+        {
+            aHeld = true;
+            menuArmorCursor = (menuArmorCursor + 3) % 4; // Move left (wrap around)
+        }
+        else if (!input.isMovingLeft())
+        {
+            aHeld = false;
+        }
+
+        if (input.isMovingRight() && !dHeld)
+        {
+            dHeld = true;
+            menuArmorCursor = (menuArmorCursor + 1) % 4; // Move right (wrap around)
+        }
+        else if (!input.isMovingRight())
+        {
+            dHeld = false;
+        }
+
+        // J key: Equip selected armor
+        static bool jHeld = false;
+        if (input.isJumping() && !jHeld)
+        {
+            jHeld = true;
+            bool armorAvailable = false;
+            
+            // Check if armor is available
+            switch (menuArmorCursor)
+            {
+                case 0: armorAvailable = gameState.hasEarthArmor(); break;
+                case 1: armorAvailable = gameState.hasWindArmor(); break;
+                case 2: armorAvailable = gameState.hasFireArmor(); break;
+                case 3: armorAvailable = gameState.hasWaterArmor(); break;
+            }
+            
+            if (armorAvailable)
+            {
+                // Equip armor
+                switch (menuArmorCursor)
+                {
+                    case 0: polarBear.setElement(PolarBear::Element::Earth); break;
+                    case 1: polarBear.setElement(PolarBear::Element::Wind); break;
+                    case 2: polarBear.setElement(PolarBear::Element::Fire); break;
+                    case 3: polarBear.setElement(PolarBear::Element::Water); break;
+                }
+                menuEquippedArmor = menuArmorCursor;
+                if (confirmSound)
+                    Mix_PlayChannel(-1, confirmSound, 0);
+            }
+            else
+            {
+                // Armor not available
+                if (cancelSound)
+                    Mix_PlayChannel(-1, cancelSound, 0);
+            }
+        }
+        else if (!input.isJumping())
+        {
+            jHeld = false;
+        }
+        
+        // K key: Unequip armor
+        static bool kHeld = false;
+        if (input.isAttacking() && !kHeld)
+        {
+            kHeld = true;
+            if (menuEquippedArmor != -1)
+            {
+                // Unequip armor
+                polarBear.setElement(PolarBear::Element::None);
+                menuEquippedArmor = -1;
+                if (cancelSound)
+                    Mix_PlayChannel(-1, cancelSound, 0);
+            }
+        }
+        else if (!input.isAttacking())
+        {
+            kHeld = false;
+        }
+
+        // Reset input events and return - don't process game inputs while menu is open
+        input.resetFrameEvents();
+        return;
+    }
+
     // Disable input during boss intro or while boss explicitly disables inputs
     if (boss && (boss->isIntroActive() || boss->shouldDisableInputs()))
     {
@@ -939,144 +1083,6 @@ void Game::handleInput()
         bossSlashHit = false;  // Reset boss hit flag for new slash
         if (slashSound)
             Mix_PlayChannel(-1, slashSound, 0);
-    }
-
-    // Pause (ESC key) - toggle pause state (disabled during ending scene)
-    if (input.isPausePressed() && !endingStage)
-    {
-        paused = !paused;
-        if (paused)
-        {
-            Mix_VolumeMusic(config.pauseMusicVolume);
-        }
-        else
-        {
-            Mix_VolumeMusic(config.musicVolume);
-        }
-    }
-
-    // Menu (Tab key) - toggle menu (disabled during ending scene and pause)
-    if (input.isMenuPressed() && !endingStage && !paused)
-    {
-        menuOpen = !menuOpen;
-        if (menuOpen)
-        {
-            // Set cursor and equipped armor based on current armor
-            if (polarBear.element == PolarBear::Element::Earth)
-            {
-                menuArmorCursor = 0;
-                menuEquippedArmor = 0;
-            }
-            else if (polarBear.element == PolarBear::Element::Wind)
-            {
-                menuArmorCursor = 1;
-                menuEquippedArmor = 1;
-            }
-            else if (polarBear.element == PolarBear::Element::Fire)
-            {
-                menuArmorCursor = 2;
-                menuEquippedArmor = 2;
-            }
-            else if (polarBear.element == PolarBear::Element::Water)
-            {
-                menuArmorCursor = 3;
-                menuEquippedArmor = 3;
-            }
-            else
-            {
-                menuArmorCursor = 0;
-                menuEquippedArmor = -1; // No armor equipped
-            }
-        }
-    }
-
-    // Menu navigation (when menu is open)
-    if (menuOpen)
-    {
-        // Navigate armor cursor with A (left) and D (right)
-        static bool aHeld = false;
-        static bool dHeld = false;
-
-        if (input.isMovingLeft() && !aHeld)
-        {
-            aHeld = true;
-            menuArmorCursor = (menuArmorCursor + 3) % 4; // Move left (wrap around)
-        }
-        else if (!input.isMovingLeft())
-        {
-            aHeld = false;
-        }
-
-        if (input.isMovingRight() && !dHeld)
-        {
-            dHeld = true;
-            menuArmorCursor = (menuArmorCursor + 1) % 4; // Move right (wrap around)
-        }
-        else if (!input.isMovingRight())
-        {
-            dHeld = false;
-        }
-
-        // J key: Equip selected armor
-        static bool jHeld = false;
-        if (input.isJumping() && !jHeld)
-        {
-            jHeld = true;
-            bool armorAvailable = false;
-            
-            // Check if armor is available
-            switch (menuArmorCursor)
-            {
-                case 0: armorAvailable = gameState.hasEarthArmor(); break;
-                case 1: armorAvailable = gameState.hasWindArmor(); break;
-                case 2: armorAvailable = gameState.hasFireArmor(); break;
-                case 3: armorAvailable = gameState.hasWaterArmor(); break;
-            }
-            
-            if (armorAvailable)
-            {
-                // Equip armor
-                switch (menuArmorCursor)
-                {
-                    case 0: polarBear.setElement(PolarBear::Element::Earth); break;
-                    case 1: polarBear.setElement(PolarBear::Element::Wind); break;
-                    case 2: polarBear.setElement(PolarBear::Element::Fire); break;
-                    case 3: polarBear.setElement(PolarBear::Element::Water); break;
-                }
-                menuEquippedArmor = menuArmorCursor;
-                if (confirmSound)
-                    Mix_PlayChannel(-1, confirmSound, 0);
-            }
-            else
-            {
-                // Armor not available
-                if (cancelSound)
-                    Mix_PlayChannel(-1, cancelSound, 0);
-            }
-        }
-        else if (!input.isJumping())
-        {
-            jHeld = false;
-        }
-        
-        // K key: Unequip armor
-        static bool kHeld = false;
-        if (input.isAttacking() && !kHeld)
-        {
-            kHeld = true;
-            if (menuEquippedArmor != -1)
-            {
-                // Unequip armor
-                polarBear.setElement(PolarBear::Element::None);
-                menuEquippedArmor = -1;
-                if (cancelSound)
-                    Mix_PlayChannel(-1, cancelSound, 0);
-            }
-        }
-        else if (!input.isAttacking())
-        {
-            kHeld = false;
-        }
     }
 
     // Reset single-frame events
