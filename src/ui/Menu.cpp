@@ -1,8 +1,8 @@
 #include "Menu.h"
-#include "../entities/PolarBear.h"
-#include "../systems/GameState.h"
-#include "../core/Input.h"
-#include "../core/Camera.h"
+#include "entities/PolarBear.h"
+#include "systems/GameState.h"
+#include "core/Input.h"
+#include "core/Camera.h"
 
 #include <SDL2/SDL_image.h>
 #include <iostream>

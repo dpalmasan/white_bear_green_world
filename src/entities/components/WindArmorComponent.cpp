@@ -2,8 +2,8 @@
 // WindArmorComponent implementation
 
 #include "WindArmorComponent.h"
-#include "../PolarBear.h"
-#include "../../systems/TileMap.h"
+#include "entities/PolarBear.h"
+#include "systems/TileMap.h"
 
 void WindArmorComponent::update(PolarBear& bear, float dt, const TileMap& map)
 {

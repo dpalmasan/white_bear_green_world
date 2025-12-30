@@ -81,6 +81,13 @@ assets/
 - Forward declarations preferred to reduce include dependencies
 - Include guards use `#pragma once`
 
+### Include Paths
+- CMake configured with `target_include_directories` to use `src/` as base
+- All includes use **src-relative paths**: `#include "systems/Config.h"` instead of `#include "../../systems/Config.h"`
+- Local files in same directory: `#include "MyFile.h"`
+- Cross-module includes: `#include "entities/PolarBear.h"`, `#include "systems/TileMap.h"`
+- Standard/SDL libraries: `#include <SDL2/SDL.h>`, `#include <iostream>`
+
 ## Key Systems
 
 ### 1. Game State Management
@@ -217,6 +224,14 @@ cmake --build build -j4
 ```
 
 ## Recent Changes (December 2025)
+
+### CMake Include Path Configuration (Dec 29, 2025)
+- Added `target_include_directories(polar_bear PRIVATE ${CMAKE_SOURCE_DIR}/src)` to CMakeLists.txt
+- Makes `src/` the base include directory for all source files
+- Updated 16 source files to use src-relative includes (e.g., `"systems/TileMap.h"` instead of `"../../systems/TileMap.h"`)
+- Eliminates confusing `../` navigation in include statements
+- Makes includes location-independent and easier to maintain
+- Build verified successful after changes
 
 ### Source Folder Reorganization (Dec 29, 2025)
 - Created **systems/** folder for engine infrastructure (Config, GameState, TileMap, AssetManager)

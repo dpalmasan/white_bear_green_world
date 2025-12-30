@@ -64,6 +64,10 @@ file(GLOB_RECURSE SRC_FILES
 
 add_executable(polar_bear ${SRC_FILES})
 
+# Add src directory as include directory so we can use absolute paths from src/
+# This allows includes like "systems/Config.h" instead of "../../systems/Config.h"
+target_include_directories(polar_bear PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
 # On macOS with Homebrew, SDL2 include dirs point directly to SDL2 headers (e.g., /opt/homebrew/include/SDL2)
 # We need to also add the parent directory so that #include <SDL2/SDL.h> works
 # This maintains compatibility with Linux where includes are typically /usr/include

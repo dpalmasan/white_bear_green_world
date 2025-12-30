@@ -2,7 +2,7 @@
 
 #include <SDL2/SDL.h>
 
-#include "../systems/TileMap.h"
+#include "systems/TileMap.h"
 
 struct Fireball
 {

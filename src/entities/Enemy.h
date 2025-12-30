@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "../systems/TileMap.h"
+#include "systems/TileMap.h"
 
 // Base Enemy class - handles physics, collision, animation, rendering
 // Derived classes override updateBehavior() for specific enemy behavior

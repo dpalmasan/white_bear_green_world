@@ -2,8 +2,8 @@
 // SwimmingComponent implementation
 
 #include "SwimmingComponent.h"
-#include "../PolarBear.h"
-#include "../../systems/TileMap.h"
+#include "entities/PolarBear.h"
+#include "systems/TileMap.h"
 
 #include <algorithm>
 

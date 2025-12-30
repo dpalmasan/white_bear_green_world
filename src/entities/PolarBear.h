@@ -11,8 +11,8 @@
 #include <memory>
 #include <string>
 
-#include "../actions/Attack.h"
-#include "../systems/TileMap.h"
+#include "actions/Attack.h"
+#include "systems/TileMap.h"
 #include "components/BearComponent.h"
 
 // Forward declarations.

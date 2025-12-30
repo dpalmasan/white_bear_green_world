@@ -12,9 +12,9 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "../effects/Explosion.h"
-#include "../systems/TileMap.h"
-#include "../core/Camera.h"
+#include "effects/Explosion.h"
+#include "systems/TileMap.h"
+#include "core/Camera.h"
 #include "Fireball.h"
 #include "PolarBear.h"
 

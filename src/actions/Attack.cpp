@@ -10,7 +10,7 @@
 
 #include <cmath>
 
-#include "../entities/PolarBear.h"
+#include "entities/PolarBear.h"
 
 // ============================================================================
 // SlashAttack Implementation

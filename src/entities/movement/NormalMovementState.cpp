@@ -7,8 +7,8 @@
 
 #include <algorithm>
 
-#include "../PolarBear.h"
-#include "../../systems/TileMap.h"
+#include "entities/PolarBear.h"
+#include "systems/TileMap.h"
 
 void NormalMovementState::onEnter(PolarBear& bear)
 {

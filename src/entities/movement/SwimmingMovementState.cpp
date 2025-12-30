@@ -8,8 +8,8 @@
 #include <algorithm>
 #include <iostream>
 
-#include "../PolarBear.h"
-#include "../../systems/TileMap.h"
+#include "entities/PolarBear.h"
+#include "systems/TileMap.h"
 
 void SwimmingMovementState::onEnter(PolarBear& bear)
 {

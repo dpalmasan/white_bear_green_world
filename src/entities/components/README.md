@@ -109,8 +109,8 @@ public:
 
 ```cpp
 #include "MyNewComponent.h"
-#include "../PolarBear.h"
-#include "../TileMap.h"
+#include "entities/PolarBear.h"
+#include "systems/TileMap.h"
 
 void MyNewComponent::update(PolarBear& bear, float dt, const TileMap& map) {
     // Your component logic here

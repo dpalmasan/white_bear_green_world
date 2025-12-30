@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "../systems/TileMap.h"
+#include "systems/TileMap.h"
 #include "PolarBear.h"
 
 void FrenzyWolf::setIdleTexture(SDL_Texture* tex)

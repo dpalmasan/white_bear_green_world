@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-#include "../actions/Attack.h"
+#include "actions/Attack.h"
 
 // Component management
 void PolarBear::addComponent(std::unique_ptr<BearComponent> component)
