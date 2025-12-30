@@ -229,7 +229,7 @@ void PolarBear::loadWindJumpTexture(SDL_Renderer* renderer, const std::string& f
 
 void PolarBear::setElement(Element e)
 {
-    // Capture baseline once (non-element frames/dimensions)
+    // Capture baseline once (non-element frames/dimensions/textures)
     if (baseWalkWidth == 0)
     {
         baseWalkWidth  = spriteWidth;
@@ -239,6 +239,9 @@ void PolarBear::setElement(Element e)
         // Default jump uses spriteWidth/Height; allow override later if needed
         baseJumpWidth  = spriteWidth;
         baseJumpHeight = spriteHeight;
+        // Store original textures
+        baseWalkTexture = texture;
+        baseJumpTexture = jumpTexture;
     }
 
     element = e;
@@ -289,7 +292,11 @@ void PolarBear::setElement(Element e)
         spriteHeight = (baseWalkHeight > 0) ? baseWalkHeight : spriteHeight;
         numFrames    = (baseNumFrames > 0) ? baseNumFrames : numFrames;
         jumpFrames   = (baseJumpFrames > 0) ? baseJumpFrames : jumpFrames;
-        // Keep texture/jumpTexture as originally loaded defaults
+        // Restore original textures
+        if (baseWalkTexture)
+            texture = baseWalkTexture;
+        if (baseJumpTexture)
+            jumpTexture = baseJumpTexture;
         frame      = 0;
         frameTimer = 0.0f;
     }

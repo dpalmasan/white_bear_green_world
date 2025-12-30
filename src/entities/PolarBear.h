@@ -137,13 +137,15 @@ class PolarBear
     // Elemental state
     Element element = Element::None;
 
-    // Baseline (non-element) dimensions/frames captured on first setElement call
+    // Baseline (non-element) dimensions/frames/textures captured on first setElement call
     int baseWalkWidth   = 0;
     int baseWalkHeight  = 0;
     int baseJumpWidth   = 0;
     int baseJumpHeight  = 0;
     int baseNumFrames   = 0;
     int baseJumpFrames  = 0;
+    SDL_Texture* baseWalkTexture = nullptr;  // Original walk texture
+    SDL_Texture* baseJumpTexture = nullptr;  // Original jump texture
 
     // Water / swimming state
     bool inWater     = false;
