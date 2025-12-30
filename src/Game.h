@@ -21,6 +21,7 @@
 #include "TileMap.h"
 #include "levels/StageRegistry.h"
 #include "TitleScreen.h"
+#include "ui/Menu.h"
 #include "WorldMap.h"
 #include "core/Camera.h"
 #include "core/Input.h"
@@ -46,22 +47,7 @@ class Game
     bool paused = false;
     
     // Menu system
-    bool menuOpen = false;
-    int menuArmorCursor = 0; // 0=earth, 1=wind, 2=fire, 3=water
-    int menuEquippedArmor = -1;  // -1=none, 0=earth, 1=wind, 2=fire, 3=water
-    SDL_Texture* menuBackgroundTexture = nullptr;
-    SDL_Texture* slashIconTexture = nullptr;
-    SDL_Texture* climbIconTexture = nullptr;
-    SDL_Texture* iceBreathIconTexture = nullptr;
-    SDL_Texture* dashIconTexture = nullptr;
-    SDL_Texture* earthArmorTexture = nullptr;
-    SDL_Texture* windArmorTexture = nullptr;
-    SDL_Texture* fireArmorTexture = nullptr;
-    SDL_Texture* waterArmorTexture = nullptr;
-    SDL_Texture* earthArmorCursorTexture = nullptr;
-    SDL_Texture* windArmorCursorTexture = nullptr;
-    SDL_Texture* fireArmorCursorTexture = nullptr;
-    SDL_Texture* waterArmorCursorTexture = nullptr;
+    Menu menu;
 
     // SDL rendering objects.
     SDL_Window* window     = nullptr;
@@ -122,8 +108,6 @@ class Game
     // Sound effects
     Mix_Chunk* slashSound     = nullptr;
     Mix_Chunk* explosionSound = nullptr;
-    Mix_Chunk* confirmSound   = nullptr;
-    Mix_Chunk* cancelSound    = nullptr;
 
     // Shared enemy textures
     SDL_Texture* robotAttackTexture     = nullptr;
