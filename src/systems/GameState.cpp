@@ -70,7 +70,8 @@ GameState::GameState()
 
 void GameState::reset()
 {
-    maxHealth = 100;
+    maxHealth = 3;
+    hearts = 3;
     abilities = Abilities();
     armors = Armors();
     spiritsMet.clear();

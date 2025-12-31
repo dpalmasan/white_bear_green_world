@@ -127,10 +127,6 @@ class PolarBear
     int climbRightDrawOffset = 5;  // move sprite ~5px right when wall is on the right
     int climbLeftDrawOffset  = 0;  // no extra shift when wall is on the left
 
-    // Health system (hearts). `maxHearts` is the capacity; `hearts` is current health.
-    int maxHearts = 3;
-    int hearts    = 3;
-
     // Horizontal input intent (-1, 0, 1) captured each frame
     float moveIntent = 0.0f;
     
@@ -185,7 +181,7 @@ class PolarBear
     bool inWind = false;
 
     // Takes damage and triggers the damage animation and invulnerability period.
-    void takeDamage();
+    void takeDamage(class GameState& state);
 
     // Computes the world-space bounding box of the current attack.
     // Returns true if an attack is active and fills `out` with AABB coordinates.
@@ -236,7 +232,7 @@ class PolarBear
     void onAttackRelease();
 
     // Updates position, velocity, collision, and animation state.
-    void update(float dt, const TileMap& map);
+    void update(float dt, const TileMap& map, class GameState& state);
 
     // Renders the bear sprite to the screen, selecting appropriate texture based on state.
     void render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererFlip flip = SDL_FLIP_NONE);

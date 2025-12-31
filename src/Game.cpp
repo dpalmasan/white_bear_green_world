@@ -1168,7 +1168,7 @@ void Game::update(float dt)
 
     if (!bossFreezePlayer)
     {
-        polarBear.update(dt, map);
+        polarBear.update(dt, map, gameState);
     }
 
     // Update camera: handle transition, lock, or follow player
@@ -1491,7 +1491,7 @@ void Game::update(float dt)
         SDL_Rect bossTight = Collision::shrinkRect(bossRect, 0.10f);
         if (Collision::intersects(bearTight, bossTight))
         {
-            polarBear.takeDamage();
+            polarBear.takeDamage(gameState);
         }
     }
 
@@ -1520,7 +1520,7 @@ void Game::update(float dt)
           if (Collision::intersects(bearTight, erTight))
         {
             // Collision detected: damage the bear.
-            polarBear.takeDamage();
+            polarBear.takeDamage(gameState);
         }
     }
 
@@ -1548,7 +1548,7 @@ void Game::update(float dt)
             // Suppress boss-origin damage when boss is in death phases
             bool suppressBossDamage = boss && !boss->canDamagePlayer() && fb.fromBoss;
             if (!suppressBossDamage)
-                polarBear.takeDamage();
+                polarBear.takeDamage(gameState);
         }
     }
     fireballs.erase(std::remove_if(fireballs.begin(), fireballs.end(),
@@ -1589,8 +1589,7 @@ void Game::update(float dt)
             if (Collision::intersects(bearTight, pr))
             {
                 p.collected = true;
-                polarBear.maxHearts += 1;
-                polarBear.hearts = polarBear.maxHearts;
+                gameState.increaseMaxHearts();
                 // Pause game and prepare to play pickup cue after delay
                 pauseForPickup       = true;
                 pickupMusicTimer     = 0.0f;
@@ -1813,15 +1812,15 @@ void Game::render()
         int dstW    = static_cast<int>(heartFrameW * scale);
         int dstH    = static_cast<int>(heartFrameH * scale);
         // Ensure HUD can display all hearts gained from power-ups
-        int totalHUD = std::max(heartRows * heartCols, polarBear.maxHearts);
-        int maxDraw  = polarBear.maxHearts;
+        int totalHUD = std::max(heartRows * heartCols, gameState.getMaxHearts());
+        int maxDraw  = gameState.getMaxHearts();
 
         for (int idx = 0; idx < maxDraw; ++idx)
         {
             int row = idx / heartCols;
             int col = idx % heartCols;
             SDL_Rect src;
-            bool full = (idx < polarBear.hearts);
+            bool full = (idx < gameState.getCurrentHearts());
             src.x     = 0;  // single-frame source
             src.y     = 0;
             src.w     = heartFrameW;

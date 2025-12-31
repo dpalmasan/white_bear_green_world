@@ -33,7 +33,8 @@ public:
     };
     
     // Player stats
-    int maxHealth = 5;  // Maximum health (default 5 hearts)
+    int maxHealth = 3;  // Maximum health (default 3 hearts)
+    int hearts = 3;     // Current health (default 3 hearts)
     
     // Abilities unlocked
     Abilities abilities;
@@ -74,6 +75,13 @@ public:
     bool hasFireArmor() const { return armors.hasFire; }
     bool hasEarthArmor() const { return armors.hasEarth; }
     bool hasWindArmor() const { return armors.hasWind; }
+    
+    // Health management
+    void increaseMaxHearts() { maxHealth++; hearts = maxHealth; }
+    int getCurrentHearts() const { return hearts; }
+    int getMaxHearts() const { return maxHealth; }
+    void setHearts(int h) { hearts = h; }
+    void restoreHealth() { hearts = maxHealth; }
     
     // Spirit tracking
     void markSpiritMet(const std::string& element);

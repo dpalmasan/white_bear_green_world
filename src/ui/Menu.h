@@ -55,6 +55,7 @@ private:
     SDL_Texture* windArmorCursorTex_ = nullptr;
     SDL_Texture* fireArmorCursorTex_ = nullptr;
     SDL_Texture* waterArmorCursorTex_ = nullptr;
+    SDL_Texture* heartTex_ = nullptr;  // 32x32 sprite with 2 frames (full/empty)
 
     // Sound effects
     Mix_Chunk* confirmSound_ = nullptr;

@@ -41,6 +41,7 @@ void Menu::loadAssets(SDL_Renderer* renderer, const std::string& assetPath)
     loadTexture(windArmorCursorTex_, renderer, menuPath, "wind_armor_cursor.png");
     loadTexture(fireArmorCursorTex_, renderer, menuPath, "fire_armor_cursor.png");
     loadTexture(waterArmorCursorTex_, renderer, menuPath, "water_armor_cursor.png");
+    loadTexture(heartTex_, renderer, menuPath, "menu_heart.png");
 
     // Load sound effects
     confirmSound_ = Mix_LoadWAV((assetPath + "sfx/confirm.wav").c_str());
@@ -190,12 +191,33 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
 
 void Menu::render(SDL_Renderer* renderer, const Camera& camera, const GameState& state)
 {
-    if (!isOpen_ || !backgroundTex_)
+    if (!isOpen_)
         return;
 
-    // Render background
-    SDL_Rect dest{0, 0, camera.width, camera.height};
-    SDL_RenderCopy(renderer, backgroundTex_, nullptr, &dest);
+    // Render background (images have built-in positioning)
+    if (backgroundTex_)
+    {
+        SDL_Rect fullScreenDest{0, 0, camera.width, camera.height};
+        SDL_RenderCopy(renderer, backgroundTex_, nullptr, &fullScreenDest);
+    }
+
+    // Render hearts (health display)
+    if (heartTex_)
+    {
+        const int heartSize = 32;      // Each frame is 32x32 pixels
+        const int heartSpacing = 29;   // Distance between hearts
+        const int startX = 21;         // Top-left X coordinate
+        const int startY = 20;         // Top-left Y coordinate
+
+        for (int i = 0; i < state.getMaxHearts(); ++i)
+        {
+            // Choose frame: 0 = full heart, 1 = empty heart
+            int frameIndex = (i < state.getCurrentHearts()) ? 0 : 1;
+            SDL_Rect srcRect{frameIndex * heartSize, 0, heartSize, heartSize};
+            SDL_Rect destRect{startX + i * heartSpacing, startY, heartSize, heartSize};
+            SDL_RenderCopy(renderer, heartTex_, &srcRect, &destRect);
+        }
+    }
 
     // Render skills (images have built-in positioning)
     SDL_Rect fullScreenDest{0, 0, camera.width, camera.height};
@@ -268,6 +290,7 @@ void Menu::cleanup()
     if (windArmorCursorTex_) SDL_DestroyTexture(windArmorCursorTex_);
     if (fireArmorCursorTex_) SDL_DestroyTexture(fireArmorCursorTex_);
     if (waterArmorCursorTex_) SDL_DestroyTexture(waterArmorCursorTex_);
+    if (heartTex_) SDL_DestroyTexture(heartTex_);
 
     if (confirmSound_) Mix_FreeChunk(confirmSound_);
     if (cancelSound_) Mix_FreeChunk(cancelSound_);
@@ -285,6 +308,7 @@ void Menu::cleanup()
     windArmorCursorTex_ = nullptr;
     fireArmorCursorTex_ = nullptr;
     waterArmorCursorTex_ = nullptr;
+    heartTex_ = nullptr;
     confirmSound_ = nullptr;
     cancelSound_ = nullptr;
 }

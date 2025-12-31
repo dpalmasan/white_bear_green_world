@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "actions/Attack.h"
+#include "systems/GameState.h"
 
 // Component management
 void PolarBear::addComponent(std::unique_ptr<BearComponent> component)
@@ -363,10 +364,11 @@ void PolarBear::onAttackRelease()
     }
 }
 
-void PolarBear::takeDamage()
+// Take damage from enemy/hazard, applying knockback and invulnerability
+void PolarBear::takeDamage(GameState& state)
 {
-    // Ignore damage if invulnerable
-    if (isInvulnerable)
+    // Ignore damage if already damaged or invulnerable
+    if (isDamaged || isInvulnerable)
         return;
 
     // Store the direction the bear was facing when damaged
@@ -381,8 +383,8 @@ void PolarBear::takeDamage()
     isKnockedBack        = true;  // Disable input during knockback
 
     // Lose one heart on damage (not below zero)
-    if (hearts > 0)
-        hearts -= 1;
+    if (state.getCurrentHearts() > 0)
+        state.setHearts(state.getCurrentHearts() - 1);
 
     // Apply knockback velocity (opposite to facing direction) and upward jump
     // Knockback speed and jump height
@@ -403,7 +405,7 @@ void PolarBear::renderAttack(SDL_Renderer* renderer, int camX, int camY)
     }
 }
 
-void PolarBear::update(float dt, const TileMap& map)
+void PolarBear::update(float dt, const TileMap& map, GameState& state)
 {
     // Update all components (handles all movement, swimming, climbing, armor logic)
     for (auto& comp : components)
@@ -450,7 +452,7 @@ void PolarBear::update(float dt, const TileMap& map)
         else if (y > worldH)
         {
             // Bear fell off the world - kill it
-            hearts = 0;
+            state.setHearts(0);
         }
     }
 
