@@ -806,6 +806,7 @@ void Game::handleInput()
     // Reset intent each frame when not knocked back
     polarBear.moveIntent  = 0.0f;
     polarBear.climbIntent = 0.0f;
+    polarBear.jumpHeld    = input.isJumpHeld();
 
     // Left movement (A key)
     if (input.isMovingLeft())

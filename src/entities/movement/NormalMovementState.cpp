@@ -18,7 +18,15 @@ void NormalMovementState::onEnter(PolarBear& bear)
 void NormalMovementState::applyGravity(PolarBear& bear, float dt)
 {
     const float GRAVITY = 1000.0f;
-    bear.vy += GRAVITY * dt;
+    
+    // Wind glide: reduce gravity when in wind form, descending, and holding jump
+    float gravityMultiplier = 1.0f;
+    if (bear.element == PolarBear::Element::Wind && bear.jumpHeld && bear.vy > 0.0f)
+    {
+        gravityMultiplier = 0.3f;  // 30% gravity for strong glide effect
+    }
+    
+    bear.vy += GRAVITY * gravityMultiplier * dt;
 }
 
 void NormalMovementState::applyHorizontalMovement(PolarBear& bear, float dt, const TileMap& map)

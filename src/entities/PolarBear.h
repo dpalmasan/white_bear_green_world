@@ -133,6 +133,9 @@ class PolarBear
 
     // Horizontal input intent (-1, 0, 1) captured each frame
     float moveIntent = 0.0f;
+    
+    // Jump button held state (for wind float mechanic)
+    bool jumpHeld = false;
 
     // Elemental state
     Element element = Element::None;
