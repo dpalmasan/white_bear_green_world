@@ -85,7 +85,7 @@ Starts on the world map screen instead of a stage.
 
 Debug mode for world map:
 ```shell
-./polar_bear --worldmap --worldmap-debug
+./polar_bear --worldmap
 ```
 
 #### Graphics & Zoom Options
@@ -140,31 +140,6 @@ Debug mode for world map:
 - **Tab** - Open ability menu (armor/skill selection)
 - **ESC** - Pause/Resume
 
-## Gameplay
-
-### Snowy Cliffs Stage
-
-Navigate the snowy terrain and reach the end-of-stage marker. Defeat regular enemies (robots, wolves) to progress.
-
-### Boss Battle
-
-When approaching the snow robot boss:
-
-1. **Intro Sequence**: Camera locks, boss intro animation plays with music
-2. **Attack Patterns**: 
-   - Dash attack (moves across arena)
-   - Fireball projectiles (speed and size increase as boss health decreases)
-3. **Vulnerable Phases**: After each dash, the boss enters a vulnerable state where hits are possible (frames 10-12)
-   - Metal clash sound plays when hitting during non-vulnerable frames
-4. **Death Sequence**: 
-   - Boss explodes and fades to white
-   - Heart power-up spawns at boss location and falls with gravity
-   - Player inputs re-enable after fade completes
-
-### Power-Ups
-
-- **Heart**: Increases max health by 1 and restores to full. Collects with a special pickup animation.
-
 ## Project Structure
 
 ```
@@ -216,9 +191,11 @@ The codebase uses an object-oriented design with clear separation of concerns:
 
 ### Music
 
+[![License: CC BY-NC-SA 4.0](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
 All music tracks in this project are licensed under Creative Commons licenses and are used with attribution:
 
-- Background music are located in `assets/music/`
+- Background musics are located in `assets/music/`
 
 ### Sounds
 
