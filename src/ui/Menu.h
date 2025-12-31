@@ -15,6 +15,25 @@ struct Camera;
 class Menu
 {
 public:
+    // Armor menu indices
+    enum class ArmorType : int
+    {
+        Earth = 0,
+        Wind = 1,
+        Fire = 2,
+        Water = 3,
+        None = -1
+    };
+
+    // Menu constants
+    static constexpr int ARMOR_COUNT = 4;
+    static constexpr int HEART_SIZE = 32;
+    static constexpr int HEART_SPACING = 29;
+    static constexpr int HEART_START_X = 21;
+    static constexpr int HEART_START_Y = 20;
+    static constexpr int HEART_FRAME_FULL = 0;
+    static constexpr int HEART_FRAME_EMPTY = 1;
+
     Menu() = default;
     ~Menu() = default;
 
@@ -38,8 +57,8 @@ public:
 private:
     // Menu state
     bool isOpen_ = false;
-    int armorCursor_ = 0;        // 0=earth, 1=wind, 2=fire, 3=water
-    int equippedArmor_ = -1;     // -1=none, 0=earth, 1=wind, 2=fire, 3=water
+    ArmorType armorCursor_ = ArmorType::Earth;
+    ArmorType equippedArmor_ = ArmorType::None;
 
     // Textures
     SDL_Texture* backgroundTex_ = nullptr;

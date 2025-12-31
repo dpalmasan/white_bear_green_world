@@ -23,7 +23,7 @@ void NormalMovementState::applyGravity(PolarBear& bear, float dt)
     float gravityMultiplier = 1.0f;
     if (bear.element == PolarBear::Element::Wind && bear.jumpHeld && bear.vy > 0.0f)
     {
-        gravityMultiplier = 0.3f;  // 30% gravity for strong glide effect
+        gravityMultiplier = GameConstants::Player::WIND_GLIDE_GRAVITY;  // reduced gravity for strong glide effect
     }
     
     bear.vy += GRAVITY * gravityMultiplier * dt;
@@ -79,7 +79,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
     // Update position with collision detection
     bear.x += bear.vx * dt;
 
-    const int samples = 10;
+    const int samples = GameConstants::Collision::COLLISION_SAMPLES;
     int collisions    = 0;
     for (int i = 0; i < samples; ++i)
     {
@@ -99,7 +99,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
         }
     }
 
-    if (collisions >= samples * 0.3f)
+    if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
     {
         if (bear.vx > 0)
         {
@@ -118,7 +118,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
 
     bear.onGround = false;
 
-    const int vSamples = 10;
+    const int vSamples = GameConstants::Collision::COLLISION_SAMPLES;
     int vCollisions    = 0;
 
     for (int i = 0; i < vSamples; ++i)
@@ -144,7 +144,7 @@ void NormalMovementState::updatePhysics(PolarBear& bear, float dt, const TileMap
         }
     }
 
-    if (vCollisions >= vSamples * 0.2f)
+    if (vCollisions >= vSamples * GameConstants::Collision::COLLISION_THRESHOLD)
     {
         if (bear.vy > 0)
         {

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "core/GameConstants.h"
+
 void Arachnoid::updateBehavior(float dt, const TileMap& map)
 {
     if (!alive)
@@ -10,8 +12,8 @@ void Arachnoid::updateBehavior(float dt, const TileMap& map)
     // Move horizontally
     x += vx * dt;
 
-    // Simple wall collision with 80% threshold: if blocked, push out and reverse
-    const int samples = 10;
+    // Simple wall collision: if blocked, push out and reverse
+    const int samples = GameConstants::Collision::COLLISION_SAMPLES;
     int collisions    = 0;
 
     if (vx > 0)
@@ -26,7 +28,7 @@ void Arachnoid::updateBehavior(float dt, const TileMap& map)
             if (map.isSolidAtWorld(rightX, y + h, 0.0f))
                 collisions++;
         }
-        if (collisions >= samples * 0.3f)
+        if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
         {
             x  = (rightX / map.tileSize) * map.tileSize - width;
             vx = -vx;
@@ -43,7 +45,7 @@ void Arachnoid::updateBehavior(float dt, const TileMap& map)
             if (map.isSolidAtWorld(leftX, y + h, 0.0f))
                 collisions++;
         }
-        if (collisions >= samples * 0.3f)
+        if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
         {
             x  = (leftX / map.tileSize + 1) * map.tileSize;
             vx = -vx;
@@ -54,7 +56,7 @@ void Arachnoid::updateBehavior(float dt, const TileMap& map)
     int footY     = static_cast<int>(y + height);
     bool groundOK = false;
     // Check multiple points along width for ground
-    const int edgeChecks = 3;
+    const int edgeChecks = GameConstants::Enemies::Arachnoid::EDGE_CHECKS;
     for (int i = 0; i < edgeChecks; ++i)
     {
         int checkX = static_cast<int>(vx > 0 ? x + width + i : x - edgeChecks + i);
@@ -80,7 +82,9 @@ void Arachnoid::render(SDL_Renderer* renderer, int camX, int camY)
         return;
 
     SDL_Rect src{frame * width, 0, width, height};
-    SDL_Rect dst{static_cast<int>(std::round(x)) - camX, static_cast<int>(std::round(y)) - camY + 6, width, height};
+    SDL_Rect dst{static_cast<int>(std::round(x)) - camX,
+                 static_cast<int>(std::round(y)) - camY + GameConstants::Enemies::Arachnoid::RENDER_Y_OFFSET,
+                 width, height};
     SDL_RendererFlip flip = flipHorizontal ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE;
     SDL_RenderCopyEx(renderer, texture, &src, &dst, 0.0, nullptr, flip);
 }

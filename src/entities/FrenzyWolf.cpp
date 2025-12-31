@@ -13,11 +13,11 @@ void FrenzyWolf::setIdleTexture(SDL_Texture* tex)
     texture = tex;
     if (!texture)
         return;
-    // Idle frames are 34x25
-    width     = 34;
-    height    = 25;
-    numFrames = 6;  // idle has 6 frames
-    frameTime = 0.1f;
+    // Idle frames
+    width     = GameConstants::Enemies::Wolf::IDLE_WIDTH;
+    height    = GameConstants::Enemies::Wolf::HEIGHT;
+    numFrames = GameConstants::Enemies::Wolf::IDLE_FRAMES;
+    frameTime = GameConstants::Enemies::Wolf::FRAME_TIME;
 }
 
 void FrenzyWolf::setRunTexture(SDL_Texture* tex, float frameTimeSeconds)
@@ -28,9 +28,9 @@ void FrenzyWolf::setRunTexture(SDL_Texture* tex, float frameTimeSeconds)
     runFrameTimer = 0.0f;
     if (!runTexture)
         return;
-    // Run/attack frames are 38x25
-    runFrameWidth = 38;
-    runFrames     = 6;  // run/attack has 6 frames
+    // Run/attack frames
+    runFrameWidth = GameConstants::Enemies::Wolf::RUN_WIDTH;
+    runFrames     = GameConstants::Enemies::Wolf::RUN_FRAMES;
 }
 
 void FrenzyWolf::tickAI(float dt, const TileMap& map, const PolarBear& bear)
@@ -38,8 +38,8 @@ void FrenzyWolf::tickAI(float dt, const TileMap& map, const PolarBear& bear)
     if (!alive)
         return;
 
-    // Vision field: wolf can only see player within 10 tiles (160px)
-    const float VISION_DISTANCE = 10.0f * 16.0f;  // 10 tiles
+    // Vision field: wolf can only see player within configurable distance
+    const float VISION_DISTANCE = GameConstants::Enemies::Wolf::VISION_DISTANCE * GameConstants::Tile::DEFAULT_SIZE;
     float wolfCenterX           = x + width * 0.5f;
     float wolfCenterY           = y + height * 0.5f;
     float playerCenterX         = bear.x + bear.spriteWidth * 0.5f;
@@ -55,15 +55,15 @@ void FrenzyWolf::tickAI(float dt, const TileMap& map, const PolarBear& bear)
     {
         // Decelerate to idle
         if (vx > 0.0f)
-            vx = std::max(0.0f, vx - accel * 1.2f * dt);
+            vx = std::max(0.0f, vx - accel * GameConstants::Enemies::Wolf::DECEL_MULTIPLIER * dt);
         else if (vx < 0.0f)
-            vx = std::min(0.0f, vx + accel * 1.2f * dt);
+            vx = std::min(0.0f, vx + accel * GameConstants::Enemies::Wolf::DECEL_MULTIPLIER * dt);
         running = false;
         return;
     }
 
-    // Target position: 3 tiles (48px) behind the player instead of at player center
-    const float BEHIND_DISTANCE = 3.0f * 16.0f;       // 3 tiles behind player
+    // Target position: chase distance behind the player
+    const float BEHIND_DISTANCE = GameConstants::Enemies::Wolf::CHASE_BEHIND_DISTANCE * GameConstants::Tile::DEFAULT_SIZE;
     float targetX = playerCenterX - BEHIND_DISTANCE;  // target behind (to the left by default)
 
     // Adjust target based on wolf position relative to player
@@ -73,13 +73,13 @@ void FrenzyWolf::tickAI(float dt, const TileMap& map, const PolarBear& bear)
     flipHorizontal = dx > 0;  // flip when target is to the right
 
     // Only chase when roughly on the same vertical band
-    const float verticalBand = 48.0f;
+    const float verticalBand = GameConstants::Enemies::Wolf::VERTICAL_BAND;
     float desiredDir         = 0.0f;
     if (dy <= verticalBand)
     {
-        if (dx > 4.0f)
+        if (dx > GameConstants::Enemies::Wolf::MIN_MOVEMENT_THRESHOLD)
             desiredDir = 1.0f;
-        else if (dx < -4.0f)
+        else if (dx < -GameConstants::Enemies::Wolf::MIN_MOVEMENT_THRESHOLD)
             desiredDir = -1.0f;
     }
 
@@ -96,12 +96,12 @@ void FrenzyWolf::tickAI(float dt, const TileMap& map, const PolarBear& bear)
     else
     {
         if (vx > 0.0f)
-            vx = std::max(0.0f, vx - accel * 1.2f * dt);
+            vx = std::max(0.0f, vx - accel * GameConstants::Enemies::Wolf::DECEL_MULTIPLIER * dt);
         else if (vx < 0.0f)
-            vx = std::min(0.0f, vx + accel * 1.2f * dt);
+            vx = std::min(0.0f, vx + accel * GameConstants::Enemies::Wolf::DECEL_MULTIPLIER * dt);
     }
 
-    running = std::fabs(vx) > 5.0f;
+    running = std::fabs(vx) > GameConstants::Enemies::Wolf::MIN_RUNNING_SPEED;
 }
 
 void FrenzyWolf::updateBehavior(float dt, const TileMap& map)
@@ -109,10 +109,10 @@ void FrenzyWolf::updateBehavior(float dt, const TileMap& map)
     if (!alive)
         return;
 
-    // Move horizontally with simple collision resolution using 80% threshold
+    // Move horizontally with simple collision resolution
     x += vx * dt;
 
-    const int samples = 10;
+    const int samples = GameConstants::Collision::COLLISION_SAMPLES;
     int collisions    = 0;
 
     if (vx > 0.0f)
@@ -126,7 +126,7 @@ void FrenzyWolf::updateBehavior(float dt, const TileMap& map)
             if (map.isSolidAtWorld(rightX, y + h, 0.0f))
                 collisions++;
         }
-        if (collisions >= samples * 0.3f)
+        if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
         {
             x  = (rightX / map.tileSize) * map.tileSize - width;
             vx = 0.0f;
@@ -143,7 +143,7 @@ void FrenzyWolf::updateBehavior(float dt, const TileMap& map)
             if (map.isSolidAtWorld(leftX, y + h, 0.0f))
                 collisions++;
         }
-        if (collisions >= samples * 0.3f)
+        if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
         {
             x  = (leftX / map.tileSize + 1) * map.tileSize;
             vx = 0.0f;

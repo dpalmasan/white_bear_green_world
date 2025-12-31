@@ -7,6 +7,7 @@
 
 #include "Game.h"
 #include "core/Collision.h"
+#include "core/GameConstants.h"
 #include "entities/components/MovementComponent.h"
 #include "entities/components/WindArmorComponent.h"
 #include "entities/components/SwimmingComponent.h"
@@ -56,9 +57,9 @@ bool Game::init()
         return false;
     }
 
-    // Set logical render size to 320x240
+    // Set logical render size to base resolution
     // This allows the renderer to scale to any window size while maintaining aspect ratio
-    SDL_RenderSetLogicalSize(renderer, 320, 240);
+    SDL_RenderSetLogicalSize(renderer, GameConstants::Display::LOGICAL_WIDTH, GameConstants::Display::LOGICAL_HEIGHT);
 
     // Initialize SDL_image for PNG loading support.
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))
@@ -260,13 +261,13 @@ void Game::loadAssets()
     SDL_RenderSetLogicalSize(renderer, actualWindowWidth, actualWindowHeight);
     
     // Scale factor to make 320x240 content fill the window
-    float scaleX = static_cast<float>(actualWindowWidth) / 320.0f;
-    float scaleY = static_cast<float>(actualWindowHeight) / 240.0f;
+    float scaleX = static_cast<float>(actualWindowWidth) / GameConstants::Display::LOGICAL_WIDTH;
+    float scaleY = static_cast<float>(actualWindowHeight) / GameConstants::Display::LOGICAL_HEIGHT;
     SDL_RenderSetScale(renderer, scaleX, scaleY);
     
     // Camera is window size (sees 320x240 worth of world but at window resolution)
-    camera.width  = static_cast<int>(320 / config.cameraZoom);
-    camera.height = static_cast<int>(240 / config.cameraZoom);
+    camera.width  = static_cast<int>(GameConstants::Display::LOGICAL_WIDTH / config.cameraZoom);
+    camera.height = static_cast<int>(GameConstants::Display::LOGICAL_HEIGHT / config.cameraZoom);
 
     // Set the world size for camera bounds to the full map dimensions.
     // Map coordinates are 0-based, so actual pixel size is (width) * tileSize
@@ -903,13 +904,13 @@ void Game::update(float dt)
         {
             // Stage gameplay: update logical size and scale to fill window
             SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
-            float scaleX = static_cast<float>(windowWidth) / 320.0f;
-            float scaleY = static_cast<float>(windowHeight) / 240.0f;
+            float scaleX = static_cast<float>(windowWidth) / GameConstants::Display::LOGICAL_WIDTH;
+            float scaleY = static_cast<float>(windowHeight) / GameConstants::Display::LOGICAL_HEIGHT;
             SDL_RenderSetScale(renderer, scaleX, scaleY);
             
             // Camera still sees 320x240 worth of world
-            camera.width  = static_cast<int>(320 / config.cameraZoom);
-            camera.height = static_cast<int>(240 / config.cameraZoom);
+            camera.width  = static_cast<int>(GameConstants::Display::LOGICAL_WIDTH / config.cameraZoom);
+            camera.height = static_cast<int>(GameConstants::Display::LOGICAL_HEIGHT / config.cameraZoom);
         }
     }
     
@@ -1711,8 +1712,8 @@ void Game::render()
         SDL_QueryTexture(backgroundTexture, nullptr, nullptr, &texW, &texH);
 
         // Background fills 320x240 logical space
-        const int logicalW = 320;
-        const int logicalH = 240;
+        const int logicalW = GameConstants::Display::LOGICAL_WIDTH;
+        const int logicalH = GameConstants::Display::LOGICAL_HEIGHT;
 
         // Calculate scaling to fill logical viewport
         float scaleX = static_cast<float>(logicalW) / texW;
@@ -2055,12 +2056,12 @@ void Game::clean()
 // Main game loop: runs at ~60 FPS until the game exits.
 void Game::run()
 {
-    const float dt = 1.0f / 60.0f;  // Fixed timestep of 16.67 ms (~60 FPS).
+    const float dt = 1.0f / GameConstants::Timing::TARGET_FPS;  // Fixed timestep.
     while (running)
     {
         handleInput();
         update(dt);
         render();
-        SDL_Delay(16);  // Simple timing to maintain ~60 FPS.
+        SDL_Delay(GameConstants::Timing::FRAME_DELAY_MS);  // Simple timing to maintain ~60 FPS.
     }
 }

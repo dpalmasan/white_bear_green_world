@@ -14,6 +14,7 @@
 #include "actions/Attack.h"
 #include "systems/TileMap.h"
 #include "components/BearComponent.h"
+#include "core/GameConstants.h"
 
 // Forward declarations.
 class Attack;
@@ -60,26 +61,26 @@ class PolarBear
     SDL_Texture* windJumpTexture = nullptr;
 
     // Sprite dimensions (pixels).
-    int spriteWidth  = 64;
-    int spriteHeight = 64;
+    int spriteWidth  = GameConstants::Player::DEFAULT_WIDTH;
+    int spriteHeight = GameConstants::Player::DEFAULT_HEIGHT;
     // Current animation frame index (0-based).
     int frame = 0;
     // Number of frames in idle/walk animation.
-    int numFrames = 4;
+    int numFrames = GameConstants::Player::WALK_FRAMES;
     // Number of frames in jump animation.
-    int jumpFrames = 7;
+    int jumpFrames = GameConstants::Player::JUMP_FRAMES;
     // Number of frames in attack animation.
-    int attackFrames = 7;
+    int attackFrames = GameConstants::Player::ATTACK_FRAMES;
     // Number of frames in climb animation.
-    int climbFrames = 4;
+    int climbFrames = GameConstants::Player::CLIMB_FRAMES;
     // Climb frame dimensions (pixels).
-    int climbWidth  = 37;
-    int climbHeight = 47;
+    int climbWidth  = GameConstants::Player::CLIMB_WIDTH;
+    int climbHeight = GameConstants::Player::CLIMB_HEIGHT;
     // Time per frame in seconds for idle/walk animations.
-    float frameTime = 0.15f;
+    float frameTime = GameConstants::Player::WALK_FRAME_TIME;
     // Accumulated time for frame counter.
     float frameTimer     = 0.0f;
-    float climbFrameTime = 0.15f;  // Time per frame for climb animation
+    float climbFrameTime = GameConstants::Player::CLIMB_FRAME_TIME;
 
     // Attack state and animation.
     // Current attack (nullptr if not attacking).
@@ -87,8 +88,8 @@ class PolarBear
     // True if currently performing an attack.
     bool isAttacking = false;
     // Attack sprite dimensions (pixels).
-    int attackWidth  = 54;
-    int attackHeight = 37;
+    int attackWidth  = GameConstants::Player::ATTACK_WIDTH;
+    int attackHeight = GameConstants::Player::ATTACK_HEIGHT;
     // Last rendered sprite position in screen coordinates.
     // Used to align the slash effect with the bear's actual draw position.
     int lastDrawX = 0;  // Screen X position of sprite.
@@ -104,11 +105,11 @@ class PolarBear
     // Elapsed time in the current damage frame.
     float damageTimer = 0.0f;
     // Time per damage frame in seconds.
-    float damageDuration = 0.08f;
+    float damageDuration = GameConstants::Player::DAMAGE_FRAME_DURATION;
     // Counter for the blinking effect during invulnerability (0-3 seconds).
     float invulnerabilityTimer = 0.0f;
     // Duration of invulnerability after damage (3 seconds).
-    float invulnerabilityDuration = 3.0f;
+    float invulnerabilityDuration = GameConstants::Player::INVULNERABILITY_DURATION;
     // True if currently invulnerable (immune to damage).
     bool isInvulnerable = false;
     // Direction the bear was facing when damaged (for knockback direction).
@@ -121,11 +122,11 @@ class PolarBear
     bool canClimb         = false;  // unlocked via dev flag
     bool isClimbing       = false;  // currently climbing
     float climbIntent     = 0.0f;   // vertical input intent for climbing (-1,0,1)
-    float climbSpeed      = 60.0f;  // pixels per second when climbing
+    float climbSpeed      = GameConstants::Player::CLIMB_SPEED;
     bool climbOnRightWall = false;  // true if latched to a wall on the right side
     // Visual fine-tune to keep sprite snug to the wall
-    int climbRightDrawOffset = 5;  // move sprite ~5px right when wall is on the right
-    int climbLeftDrawOffset  = 0;  // no extra shift when wall is on the left
+    int climbRightDrawOffset = GameConstants::Player::CLIMB_RIGHT_DRAW_OFFSET;
+    int climbLeftDrawOffset  = GameConstants::Player::CLIMB_LEFT_DRAW_OFFSET;
 
     // Horizontal input intent (-1, 0, 1) captured each frame
     float moveIntent = 0.0f;
@@ -152,30 +153,30 @@ class PolarBear
     bool wasSwimming = false;
     bool justExitedWater = false;
     bool swimPressed = false;
-    float swimUpSpeed   = 140.0f;
-    float swimSinkSpeed = 80.0f;
-    float swimRunSpeed  = 70.0f;
-    float runSpeed      = 60.0f;  // Ground movement speed
+    float swimUpSpeed   = GameConstants::Player::SWIM_UP_SPEED;
+    float swimSinkSpeed = GameConstants::Player::SWIM_SINK_SPEED;
+    float swimRunSpeed  = GameConstants::Player::SWIM_RUN_SPEED;
+    float runSpeed      = GameConstants::Player::RUN_SPEED;
 
     // Frame metadata for water variants
-    int waterWalkFrames = 4;
-    int waterJumpFrames = 4;
-    int waterSwimFrames = 11;
-    int waterWalkWidth  = 54;
-    int waterWalkHeight = 35;
-    int waterJumpWidth  = 57;
-    int waterJumpHeight = 37;
-    int waterSwimWidth  = 54;
-    int waterSwimHeight = 36;
-    float swimFrameTime = 0.1f;
+    int waterWalkFrames = GameConstants::Player::WATER_WALK_FRAMES;
+    int waterJumpFrames = GameConstants::Player::WATER_JUMP_FRAMES;
+    int waterSwimFrames = GameConstants::Player::WATER_SWIM_FRAMES;
+    int waterWalkWidth  = GameConstants::Player::WATER_WALK_WIDTH;
+    int waterWalkHeight = GameConstants::Player::WATER_WALK_HEIGHT;
+    int waterJumpWidth  = GameConstants::Player::WATER_JUMP_WIDTH;
+    int waterJumpHeight = GameConstants::Player::WATER_JUMP_HEIGHT;
+    int waterSwimWidth  = GameConstants::Player::WATER_SWIM_WIDTH;
+    int waterSwimHeight = GameConstants::Player::WATER_SWIM_HEIGHT;
+    float swimFrameTime = GameConstants::Player::SWIM_FRAME_TIME;
 
     // Frame metadata for wind variants
-    int windWalkFrames = 4;
-    int windWalkWidth  = 56;
-    int windWalkHeight = 36;
-    int windJumpFrames = 6;
-    int windJumpWidth  = 62;
-    int windJumpHeight = 41;
+    int windWalkFrames = GameConstants::Player::WIND_WALK_FRAMES;
+    int windWalkWidth  = GameConstants::Player::WIND_WALK_WIDTH;
+    int windWalkHeight = GameConstants::Player::WIND_WALK_HEIGHT;
+    int windJumpFrames = GameConstants::Player::WIND_JUMP_FRAMES;
+    int windJumpWidth  = GameConstants::Player::WIND_JUMP_WIDTH;
+    int windJumpHeight = GameConstants::Player::WIND_JUMP_HEIGHT;
 
     // Wind detection/state
     bool inWind = false;

@@ -1,17 +1,18 @@
 #pragma once
 
 #include <cmath>
+#include "GameConstants.h"
 
 struct Camera
 {
     int x = 0;
     int y = 0;
 
-    int width  = 320;
-    int height = 180;
+    int width  = GameConstants::Display::LOGICAL_WIDTH;
+    int height = GameConstants::Display::LOGICAL_HEIGHT;
 
-    int worldWidth  = 320;
-    int worldHeight = 180;
+    int worldWidth  = GameConstants::Display::LOGICAL_WIDTH;
+    int worldHeight = GameConstants::Display::LOGICAL_HEIGHT;
 
     void setWorldSize(int w, int h)
     {
@@ -41,7 +42,7 @@ struct Camera
     bool isInViewport(float entityX, float entityY, int entityWidth, int entityHeight) const
     {
         // Add small margin to ensure entities near edge are still processed
-        const int margin = 32;
+        const int margin = GameConstants::Camera::VIEWPORT_MARGIN;
         return !(entityX + entityWidth < x - margin || entityX > x + width + margin ||
                  entityY + entityHeight < y - margin || entityY > y + height + margin);
     }

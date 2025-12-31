@@ -68,28 +68,28 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
             // Set cursor and equipped armor based on current armor
             if (bear.element == PolarBear::Element::Earth)
             {
-                armorCursor_ = 0;
-                equippedArmor_ = 0;
+                armorCursor_ = ArmorType::Earth;
+                equippedArmor_ = ArmorType::Earth;
             }
             else if (bear.element == PolarBear::Element::Wind)
             {
-                armorCursor_ = 1;
-                equippedArmor_ = 1;
+                armorCursor_ = ArmorType::Wind;
+                equippedArmor_ = ArmorType::Wind;
             }
             else if (bear.element == PolarBear::Element::Fire)
             {
-                armorCursor_ = 2;
-                equippedArmor_ = 2;
+                armorCursor_ = ArmorType::Fire;
+                equippedArmor_ = ArmorType::Fire;
             }
             else if (bear.element == PolarBear::Element::Water)
             {
-                armorCursor_ = 3;
-                equippedArmor_ = 3;
+                armorCursor_ = ArmorType::Water;
+                equippedArmor_ = ArmorType::Water;
             }
             else
             {
-                armorCursor_ = 0;
-                equippedArmor_ = -1; // No armor equipped
+                armorCursor_ = ArmorType::Earth;
+                equippedArmor_ = ArmorType::None;
             }
         }
         else
@@ -107,7 +107,9 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
         if (input.isMovingLeft() && !aHeld_)
         {
             aHeld_ = true;
-            armorCursor_ = (armorCursor_ + 3) % 4; // Move left (wrap around)
+            int cursorVal = static_cast<int>(armorCursor_);
+            cursorVal = (cursorVal + ARMOR_COUNT - 1) % ARMOR_COUNT;
+            armorCursor_ = static_cast<ArmorType>(cursorVal);
         }
         else if (!input.isMovingLeft())
         {
@@ -117,7 +119,9 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
         if (input.isMovingRight() && !dHeld_)
         {
             dHeld_ = true;
-            armorCursor_ = (armorCursor_ + 1) % 4; // Move right (wrap around)
+            int cursorVal = static_cast<int>(armorCursor_);
+            cursorVal = (cursorVal + 1) % ARMOR_COUNT;
+            armorCursor_ = static_cast<ArmorType>(cursorVal);
         }
         else if (!input.isMovingRight())
         {
@@ -133,10 +137,11 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
             // Check if armor is available
             switch (armorCursor_)
             {
-                case 0: armorAvailable = state.hasEarthArmor(); break;
-                case 1: armorAvailable = state.hasWindArmor(); break;
-                case 2: armorAvailable = state.hasFireArmor(); break;
-                case 3: armorAvailable = state.hasWaterArmor(); break;
+                case ArmorType::Earth: armorAvailable = state.hasEarthArmor(); break;
+                case ArmorType::Wind: armorAvailable = state.hasWindArmor(); break;
+                case ArmorType::Fire: armorAvailable = state.hasFireArmor(); break;
+                case ArmorType::Water: armorAvailable = state.hasWaterArmor(); break;
+                default: break;
             }
 
             if (armorAvailable)
@@ -144,10 +149,11 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
                 // Equip armor
                 switch (armorCursor_)
                 {
-                    case 0: bear.setElement(PolarBear::Element::Earth); break;
-                    case 1: bear.setElement(PolarBear::Element::Wind); break;
-                    case 2: bear.setElement(PolarBear::Element::Fire); break;
-                    case 3: bear.setElement(PolarBear::Element::Water); break;
+                    case ArmorType::Earth: bear.setElement(PolarBear::Element::Earth); break;
+                    case ArmorType::Wind: bear.setElement(PolarBear::Element::Wind); break;
+                    case ArmorType::Fire: bear.setElement(PolarBear::Element::Fire); break;
+                    case ArmorType::Water: bear.setElement(PolarBear::Element::Water); break;
+                    default: break;
                 }
                 equippedArmor_ = armorCursor_;
                 if (confirmSound_)
@@ -169,11 +175,11 @@ bool Menu::handleInput(Input& input, PolarBear& bear, GameState& state,
         if (input.isAttacking() && !kHeld_)
         {
             kHeld_ = true;
-            if (equippedArmor_ != -1)
+            if (equippedArmor_ != ArmorType::None)
             {
                 // Unequip armor
                 bear.setElement(PolarBear::Element::None);
-                equippedArmor_ = -1;
+                equippedArmor_ = ArmorType::None;
                 if (cancelSound_)
                     Mix_PlayChannel(-1, cancelSound_, 0);
             }
@@ -204,17 +210,11 @@ void Menu::render(SDL_Renderer* renderer, const Camera& camera, const GameState&
     // Render hearts (health display)
     if (heartTex_)
     {
-        const int heartSize = 32;      // Each frame is 32x32 pixels
-        const int heartSpacing = 29;   // Distance between hearts
-        const int startX = 21;         // Top-left X coordinate
-        const int startY = 20;         // Top-left Y coordinate
-
         for (int i = 0; i < state.getMaxHearts(); ++i)
         {
-            // Choose frame: 0 = full heart, 1 = empty heart
-            int frameIndex = (i < state.getCurrentHearts()) ? 0 : 1;
-            SDL_Rect srcRect{frameIndex * heartSize, 0, heartSize, heartSize};
-            SDL_Rect destRect{startX + i * heartSpacing, startY, heartSize, heartSize};
+            int frameIndex = (i < state.getCurrentHearts()) ? HEART_FRAME_FULL : HEART_FRAME_EMPTY;
+            SDL_Rect srcRect{frameIndex * HEART_SIZE, 0, HEART_SIZE, HEART_SIZE};
+            SDL_Rect destRect{HEART_START_X + i * HEART_SPACING, HEART_START_Y, HEART_SIZE, HEART_SIZE};
             SDL_RenderCopy(renderer, heartTex_, &srcRect, &destRect);
         }
     }
@@ -239,13 +239,13 @@ void Menu::render(SDL_Renderer* renderer, const Camera& camera, const GameState&
         SDL_RenderCopy(renderer, dashIconTex_, nullptr, &fullScreenDest);
 
     // Render equipped armor only (if any)
-    if (equippedArmor_ == 0 && earthArmorTex_)
+    if (equippedArmor_ == ArmorType::Earth && earthArmorTex_)
         SDL_RenderCopy(renderer, earthArmorTex_, nullptr, &fullScreenDest);
-    else if (equippedArmor_ == 1 && windArmorTex_)
+    else if (equippedArmor_ == ArmorType::Wind && windArmorTex_)
         SDL_RenderCopy(renderer, windArmorTex_, nullptr, &fullScreenDest);
-    else if (equippedArmor_ == 2 && fireArmorTex_)
+    else if (equippedArmor_ == ArmorType::Fire && fireArmorTex_)
         SDL_RenderCopy(renderer, fireArmorTex_, nullptr, &fullScreenDest);
-    else if (equippedArmor_ == 3 && waterArmorTex_)
+    else if (equippedArmor_ == ArmorType::Water && waterArmorTex_)
         SDL_RenderCopy(renderer, waterArmorTex_, nullptr, &fullScreenDest);
 
     // Render armor cursor based on selection (cursor images have built-in offsets)
@@ -253,17 +253,19 @@ void Menu::render(SDL_Renderer* renderer, const Camera& camera, const GameState&
 
     switch (armorCursor_)
     {
-        case 0: // Earth
+        case ArmorType::Earth:
             cursorTex = earthArmorCursorTex_;
             break;
-        case 1: // Wind
+        case ArmorType::Wind:
             cursorTex = windArmorCursorTex_;
             break;
-        case 2: // Fire
+        case ArmorType::Fire:
             cursorTex = fireArmorCursorTex_;
             break;
-        case 3: // Water
+        case ArmorType::Water:
             cursorTex = waterArmorCursorTex_;
+            break;
+        default:
             break;
     }
 

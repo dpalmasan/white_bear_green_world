@@ -1,15 +1,17 @@
 #pragma once
 #include "Enemy.h"
+#include "core/GameConstants.h"
 
 // Arachnoid enemy: walks left/right and reverses at edges or walls.
 class Arachnoid : public Enemy
 {
    public:
-    explicit Arachnoid(int w = 32, int h = 32)
+    explicit Arachnoid(int w = GameConstants::Enemies::Arachnoid::WIDTH,
+                       int h = GameConstants::Enemies::Arachnoid::HEIGHT)
     {
         width  = w;
         height = h;
-        vx     = 50.0f;  // initial speed to the right
+        vx     = GameConstants::Enemies::Arachnoid::SPEED;
     }
 
     void updateBehavior(float dt, const TileMap& map) override;

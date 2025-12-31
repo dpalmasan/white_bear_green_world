@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Enemy.h"
+#include "core/GameConstants.h"
 
 class Fireball;
 
@@ -8,7 +9,8 @@ class Fireball;
 class RobotEnemy : public Enemy
 {
    public:
-    RobotEnemy(int w = 24, int h = 46)
+    RobotEnemy(int w = GameConstants::Enemies::Robot::WIDTH,
+               int h = GameConstants::Enemies::Robot::HEIGHT)
     {
         width                = w;
         height               = h;
@@ -21,8 +23,8 @@ class RobotEnemy : public Enemy
         attackTexture   = tex;
         attackFrames    = frames;
         attackFrameTime = frameTimeSeconds;
-        attackFrameW    = 37;  // attack frames are 37x44
-        attackFrameH    = 44;
+        attackFrameW    = GameConstants::Enemies::Robot::ATTACK_WIDTH;
+        attackFrameH    = GameConstants::Enemies::Robot::ATTACK_HEIGHT;
     }
 
     // AI tick that handles detection and attack timing.
@@ -34,15 +36,15 @@ class RobotEnemy : public Enemy
 
    private:
     SDL_Texture* attackTexture = nullptr;
-    int attackFrames           = 6;
-    int attackFrameW           = 37;  // attack frame width
-    int attackFrameH           = 44;  // attack frame height
-    float attackFrameTime      = 0.1f;
+    int attackFrames           = GameConstants::Enemies::Robot::ATTACK_FRAMES;
+    int attackFrameW           = GameConstants::Enemies::Robot::ATTACK_WIDTH;
+    int attackFrameH           = GameConstants::Enemies::Robot::ATTACK_HEIGHT;
+    float attackFrameTime      = GameConstants::Enemies::Robot::ATTACK_FRAME_TIME;
 
     bool attacking       = false;
     bool firedThisAttack = false;
     float attackTimer    = 0.0f;
     int attackFrame      = 0;
-    float cooldown       = 3.0f;  // minimum wait between attacks
+    float cooldown       = GameConstants::Enemies::Robot::FIRE_COOLDOWN;
     float cooldownTimer  = 0.0f;
 };

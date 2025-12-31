@@ -122,12 +122,12 @@ void PolarBear::loadClimbTexture(SDL_Renderer* renderer, const std::string& file
     }
     else
     {
-        // Derive frame count using explicit frame width (37) when possible
+        // Derive frame count using explicit frame width when possible
         int texW = 0, texH = 0;
         SDL_QueryTexture(climbTexture, nullptr, nullptr, &texW, &texH);
-        // Use specified frame size; auto-detect frames if width is a multiple of 37
-        climbWidth  = 37;
-        climbHeight = 47;
+        // Use specified frame size; auto-detect frames if width is a multiple of climbWidth
+        climbWidth  = GameConstants::Player::CLIMB_WIDTH;
+        climbHeight = GameConstants::Player::CLIMB_HEIGHT;
         if (texW > 0 && texW % climbWidth == 0)
         {
             int frames = texW / climbWidth;
@@ -306,7 +306,7 @@ void PolarBear::setElement(Element e)
 int PolarBear::waterCoverageCount(const TileMap& map) const
 {
     // Sample center and four corners slightly inset; require 4/5 samples in water (~80%).
-    const float inset = 2.0f;
+    const float inset = GameConstants::Collision::WATER_SAMPLE_INSET;
     float left        = x + inset;
     float right       = x + spriteWidth - inset;
     float top         = y + inset;
@@ -388,8 +388,8 @@ void PolarBear::takeDamage(GameState& state)
 
     // Apply knockback velocity (opposite to facing direction) and upward jump
     // Knockback speed and jump height
-    const float knockbackSpeed = 150.0f;   // Knockback distance
-    const float jumpPower      = -250.0f;  // Reduced jump height for knockback
+    const float knockbackSpeed = GameConstants::Player::KNOCKBACK_SPEED;
+    const float jumpPower      = GameConstants::Player::KNOCKBACK_JUMP;
 
     // Knockback moves in opposite direction of where bear was facing
     vx = facingRight ? -knockbackSpeed : knockbackSpeed;
@@ -501,7 +501,7 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
     if (isInvulnerable)
     {
         // Blink effect: alternate visibility every 150ms (about 3.3 blinks per second)
-        float blinkPeriod = 0.15f;
+        float blinkPeriod = GameConstants::Player::BLINK_PERIOD;
         float blinkPhase  = fmodf(invulnerabilityTimer, blinkPeriod * 2.0f);
         if (blinkPhase >= blinkPeriod)
         {
@@ -542,7 +542,7 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
         currentHeight    = spriteHeight;
         // Rotate left (counter-clockwise) based on facing direction
         // If was facing right, rotate left (-angle); if facing left, rotate right (+angle)
-        rotationAngle = damageFacingRight ? -25.0 : 25.0;
+        rotationAngle = damageFacingRight ? -GameConstants::Player::DAMAGE_ROTATION_ANGLE : GameConstants::Player::DAMAGE_ROTATION_ANGLE;
     }
     else if (isAttacking && attackTexture)
     {
@@ -601,9 +601,9 @@ void PolarBear::render(SDL_Renderer* renderer, int camX, int camY, SDL_RendererF
         // Ascending (vy < 0): frames 1-3
         // Peak (vy ~= 0): frame 4
         // Descending (vy > 0): frames 5-7
-        float maxUpVelocity   = 320.0f;  // Match further reduced jump impulse
-        float maxDownVelocity = 600.0f;  // Terminal velocity during fall
-        float peakThreshold   = 40.0f;   // Velocity range around 0 for peak
+        float maxUpVelocity   = GameConstants::Player::JUMP_ANIMATION_MAX_UP;
+        float maxDownVelocity = GameConstants::Physics::TERMINAL_VELOCITY;
+        float peakThreshold   = GameConstants::Player::JUMP_ANIMATION_PEAK_THRESHOLD;
 
         if (vy < -peakThreshold)
         {

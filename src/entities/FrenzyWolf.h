@@ -3,6 +3,7 @@
 #include <SDL2/SDL.h>
 
 #include "Enemy.h"
+#include "core/GameConstants.h"
 
 class PolarBear;
 
@@ -12,9 +13,9 @@ class FrenzyWolf : public Enemy
    public:
     FrenzyWolf()
     {
-        width                = 34;     // idle frame width
-        height               = 25;     // frame height
-        groundAlignInsetFrac = 0.15f;  // same as other enemies
+        width                = GameConstants::Enemies::Wolf::IDLE_WIDTH;
+        height               = GameConstants::Enemies::Wolf::HEIGHT;
+        groundAlignInsetFrac = GameConstants::Enemies::Wolf::GROUND_INSET;
     }
 
     // Assign shared idle texture and infer frame sizing from its dimensions.
@@ -33,11 +34,11 @@ class FrenzyWolf : public Enemy
     SDL_Texture* runTexture = nullptr;
     int runFrames           = 1;
     int runFrame            = 0;
-    int runFrameWidth       = 38;  // attack frames are wider
-    float runFrameTime      = 0.08f;
+    int runFrameWidth       = GameConstants::Enemies::Wolf::RUN_WIDTH;
+    float runFrameTime      = GameConstants::Enemies::Wolf::FRAME_TIME;
     float runFrameTimer     = 0.0f;
 
     bool running      = false;
-    float targetSpeed = 260.0f;   // fast chaser
-    float accel       = 1200.0f;  // quick ramp-up to speed
+    float targetSpeed = GameConstants::Enemies::Wolf::TARGET_SPEED;
+    float accel       = GameConstants::Enemies::Wolf::ACCELERATION;
 };

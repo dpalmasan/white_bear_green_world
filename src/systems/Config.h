@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "core/GameConstants.h"
 
 // Simple game configuration structure and CLI parser.
 // Centralizes settings like stage selection, asset paths, window size, zoom, and volumes.
@@ -12,13 +13,13 @@ struct Config
     std::string mapPath;                      // optional explicit map.json path
 
     // Window and camera
-    int windowWidth  = 320;
-    int windowHeight = 240;
-    float cameraZoom = 1.0f;
+    int windowWidth  = GameConstants::Display::DEFAULT_WINDOW_WIDTH;
+    int windowHeight = GameConstants::Display::DEFAULT_WINDOW_HEIGHT;
+    float cameraZoom = GameConstants::Display::DEFAULT_ZOOM;
 
     // Audio
-    int musicVolume      = 96;  // 0-128
-    int pauseMusicVolume = 32;  // 0-128
+    int musicVolume      = GameConstants::Audio::DEFAULT_MUSIC_VOLUME;
+    int pauseMusicVolume = GameConstants::Audio::DEFAULT_PAUSE_VOLUME;
 
     // Dev toggles
     bool showWorldMap     = false;  // start on world map screen

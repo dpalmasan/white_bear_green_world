@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+#include "core/GameConstants.h"
 #include "systems/TileMap.h"
 #include "Fireball.h"
 #include "PolarBear.h"
@@ -58,10 +59,10 @@ void RobotEnemy::tickAI(float dt, const TileMap& map, const PolarBear& bear,
         return;
     }
 
-    // Detect player within horizontal range (6 tiles) and modest vertical band
-    const float range = 8.0f * map.tileSize;  // increased detection range
+    // Detect player within horizontal range and modest vertical band
+    const float range = GameConstants::Enemies::Robot::DETECTION_RANGE * map.tileSize;
     float dy          = std::fabs((bear.y + bear.spriteHeight / 2.0f) - (y + height / 2.0f));
-    if (std::fabs(dx) <= range && dy <= 48.0f && cooldownTimer <= 0.0f)
+    if (std::fabs(dx) <= range && dy <= GameConstants::Enemies::Robot::VERTICAL_BAND && cooldownTimer <= 0.0f)
     {
         attacking       = true;
         attackFrame     = 0;

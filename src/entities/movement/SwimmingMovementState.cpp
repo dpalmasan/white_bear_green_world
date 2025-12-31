@@ -36,7 +36,7 @@ void SwimmingMovementState::detectWaterGround(PolarBear& bear, const TileMap& ma
     // When swimming downward, check if we're touching solid ground through water
     if (bear.vy >= 0)
     {
-        const int vSamples = 10;
+        const int vSamples = GameConstants::Collision::COLLISION_SAMPLES;
         int vCollisions    = 0;
 
         for (int i = 0; i < vSamples; ++i)
@@ -52,7 +52,7 @@ void SwimmingMovementState::detectWaterGround(PolarBear& bear, const TileMap& ma
             }
         }
 
-        if (vCollisions >= vSamples * 0.2f)
+        if (vCollisions >= vSamples * GameConstants::Collision::COLLISION_THRESHOLD)
         {
             bear.onGround = true;
         }
@@ -94,7 +94,7 @@ void SwimmingMovementState::updatePhysics(PolarBear& bear, float dt, const TileM
     // Horizontal movement with collision
     bear.x += bear.vx * dt;
 
-    const int samples = 10;
+    const int samples = GameConstants::Collision::COLLISION_SAMPLES;
     int collisions    = 0;
     for (int i = 0; i < samples; ++i)
     {
@@ -114,7 +114,7 @@ void SwimmingMovementState::updatePhysics(PolarBear& bear, float dt, const TileM
         }
     }
 
-    if (collisions >= samples * 0.3f)
+    if (collisions >= samples * GameConstants::Collision::TIGHT_COLLISION_THRESHOLD)
     {
         if (bear.vx > 0)
         {
