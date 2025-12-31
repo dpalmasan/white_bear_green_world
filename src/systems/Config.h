@@ -23,10 +23,6 @@ struct Config
     // Dev toggles
     bool showWorldMap     = false;  // start on world map screen
     bool worldMapDebug    = false;  // draw target markers on world map
-    bool enableClimbSkill = false;  // enable player climbing ability (dev option)
-
-    // Element selection (dev): "none" (default), "water", "wind"
-    std::string startElement = "none";
 
     // Dev: comma-separated armor/skill lists
     std::string devArmors = "";  // e.g., "earth,wind,fire,water"
@@ -43,8 +39,6 @@ struct Config
 //   --zoom F
 //   --music-volume N
 //   --pause-volume N
-//   --enable-climb (dev: enable climbing skill)
-//   --element NAME (dev: start with element; supports "water")
 //   --armors LIST (dev: comma-separated armors, e.g., "earth,wind,fire,water")
 //   --skills LIST (dev: comma-separated skills, e.g., "slash,ice_breath,climb,dash")
 Config parseArgs(int argc, char* argv[]);

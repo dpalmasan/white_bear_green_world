@@ -83,9 +83,36 @@ void ClimbingComponent::handleClimbingPhysics(PolarBear& bear, float dt, const T
     updateClimbVelocity(bear);
 
     // Update position
-    bear.y += bear.vy * dt;
+    float nextY = bear.y + bear.vy * dt;
+    
+    // Always check for floor collision when moving down or stationary
+    // This prevents bear from phasing through floors (including collision_down_only tiles)
+    float feetY = nextY + bear.spriteHeight;
+    float leftX = bear.x + 2.0f;
+    float rightX = bear.x + bear.spriteWidth - 2.0f;
+    float centerX = bear.x + bear.spriteWidth / 2.0f;
+    
+    // Check if feet are touching solid ground or collision_down_only platforms
+    // Pass positive vy to make isSolidAtWorld detect collision_down_only tiles
+    bool hitSolid = map.isSolidAtWorld(leftX, feetY, 1.0f) || 
+                    map.isSolidAtWorld(rightX, feetY, 1.0f) ||
+                    map.isSolidAtWorld(centerX, feetY, 1.0f);
+    
+    if (hitSolid)
+    {
+        // Land on the ground and exit climbing mode
+        int tileY = static_cast<int>(feetY) / map.tileSize;
+        bear.y = tileY * map.tileSize - bear.spriteHeight;
+        bear.isClimbing = false;
+        bear.climbIntent = 0.0f;
+        bear.vy = 0.0f;
+        bear.onGround = true;
+        return;
+    }
+    
+    bear.y = nextY;
 
-    // Check for ledge mount
+    // Check for ledge mount when climbing up
     handleLedgeMount(bear, dt, map);
 }
 

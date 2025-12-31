@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "systems/Config.h"
+#include "systems/MusicManager.h"
 #include "screens/Cutscene.h"
 #include "effects/Explosion.h"
 #include "systems/GameState.h"
@@ -100,10 +101,7 @@ class Game
     GameState gameState;                             // Persistent game state (abilities, progress, collectibles)
     std::string saveFilePath = "savegame.dat";       // Path to save file (binary format)
 
-    Mix_Music* backgroundMusic = nullptr;  // Background music for the current stage.
-    Mix_Music* powerUpMusic    = nullptr;  // Short cue played on pickup
-    Mix_Music* bossMusic       = nullptr;  // Boss music for snow-robot intro
-    Mix_Music* mapMusic        = nullptr;  // Music for world map screen
+    MusicManager musicManager;  // Centralized music management
 
     // Sound effects
     Mix_Chunk* slashSound     = nullptr;

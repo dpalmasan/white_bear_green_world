@@ -56,16 +56,25 @@ Available stages:
 Examples:
 ```shell
 ./polar_bear --stage dev_stage
-./polar_bear --stage snowy-cliffs-boss --enable-climb
+./polar_bear --stage snowy-cliffs-boss --skills climb
 ```
 
-#### Enable Climbing Skill (Dev)
+#### Unlock Skills and Armors (Dev)
 ```shell
-./polar_bear --enable-climb
-./polar_bear --climb
+# Unlock climbing ability
+./polar_bear --skills climb
+
+# Unlock multiple skills
+./polar_bear --skills slash,climb,dash,ice_breath
+
+# Unlock armors
+./polar_bear --armors wind,earth,fire,water
+
+# Combine skills and armors
+./polar_bear --skills slash,climb --armors wind
 ```
 
-Allows the player to climb on climbable wall tiles.
+Allows testing different abilities and elemental armors.
 
 #### World Map Mode
 ```shell
@@ -107,7 +116,10 @@ Debug mode for world map:
 
 ```shell
 # Boss battle with climbing enabled
-./polar_bear --stage snowy-cliffs-boss --enable-climb
+./polar_bear --stage snowy-cliffs-boss --skills climb
+
+# Test with wind armor and multiple skills
+./polar_bear --armors wind --skills slash,climb,dash
 
 # Large window with lower zoom
 ./polar_bear --window-width 1280 --window-height 720 --zoom 1.0
@@ -115,16 +127,17 @@ Debug mode for world map:
 # Dev stage with full volume
 ./polar_bear --stage dev_stage --music-volume 128
 
-# World map with debug markers
-./polar_bear --worldmap --worldmap-debug
+# World map with specific armors
+./polar_bear --worldmap --armors water,wind
 ```
 
 ## Controls
 
 - **A / D** - Move left/right
-- **W / S** - Climb up/down (when adjacent to climbable walls, requires `--enable-climb`)
+- **W / S** - Climb up/down (when adjacent to climbable walls, requires climb skill)
 - **J** - Jump (or release from climb)
 - **K** - Attack / Slash
+- **Tab** - Open ability menu (armor/skill selection)
 - **ESC** - Pause/Resume
 
 ## Gameplay

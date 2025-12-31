@@ -95,14 +95,6 @@ Config parseArgs(int argc, char* argv[])
         {
             cfg.worldMapDebug = true;
         }
-        else if (arg == "--enable-climb" || arg == "--climb")
-        {
-            cfg.enableClimbSkill = true;
-        }
-        else if (arg == "--element" && i + 1 < argc)
-        {
-            cfg.startElement = argv[++i];
-        }
         else if (arg == "--armors" && i + 1 < argc)
         {
             cfg.devArmors = argv[++i];

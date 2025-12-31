@@ -171,8 +171,6 @@ Audio:
 Development Options:
   --skills LIST           Unlock skills (comma-separated: slash,climb,dash,ice_breath)
   --armors LIST           Unlock armors (comma-separated: earth,wind,fire,water)
-  --enable-climb          Legacy flag to enable climbing (same as --skills climb)
-  --element NAME          Start with element equipped (water, wind, fire, earth)
 ```
 
 **Examples**:
@@ -185,6 +183,9 @@ Development Options:
 
 # World map with specific armors
 ./bin/polar_bear --worldmap --armors water,wind
+
+# Boss stage with climbing
+./bin/polar_bear --stage snowy-cliffs-boss --skills climb
 ```
 
 ## Known Issues & Gotchas
@@ -260,6 +261,21 @@ cmake --build build -j4
 - Menu input isolated from game input (no action bleed-through)
 - Removed ESC pause (only Tab menu remains)
 
+### Legacy Flag Removal (Dec 30, 2025)
+- Removed `--enable-climb` and `--element` command-line flags
+- All functionality now through `--skills` and `--armors` options
+- Updated Config.h/cpp to remove `enableClimbSkill` and `startElement` fields
+- Cleaned up Game.cpp polar bear initialization (removed legacy flag handling)
+- Updated documentation in README.md and AGENTS.md
+- Updated VS Code tasks.json to use modern flags
+
+### Climbing Collision Fix (Dec 30, 2025)
+- Fixed bear phasing through floors when climbing
+- Changed ClimbingComponent to check floor collision continuously
+- Previously only checked when actively pressing down (climbIntent > 0)
+- Now always checks feet position against solid tiles while climbing
+- Bear properly lands and exits climbing mode when touching ground
+
 ## Future Work
 - Implement fire/water armor mechanics (currently only wind has special behavior)
 - Add dash skill functionality
@@ -275,5 +291,5 @@ cmake --build build -j4
 - Test build after structural changes: `cmake .. && cmake --build . -j4`
 
 ---
-**Last Updated**: December 29, 2025
+**Last Updated**: December 30, 2025
 **Agent**: GitHub Copilot (Claude Sonnet 4.5)

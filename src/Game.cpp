@@ -73,8 +73,8 @@ bool Game::init()
         std::cerr << "SDL_mixer open audio failed: " << Mix_GetError() << "\n";
         return false;
     }
-    // Optional: set music volume (0-128). Keep moderate volume.
-    Mix_VolumeMusic(config.musicVolume);
+    // Set music volume through MusicManager
+    musicManager.setVolume(config.musicVolume);
 
     return true;
 }
@@ -102,14 +102,10 @@ void Game::loadAssets()
         worldMap.debug = config.worldMapDebug;
         
         // Load and play map music
-        mapMusic = Mix_LoadMUS((config.assetPath + "music/map.ogg").c_str());
-        if (!mapMusic)
+        const std::string mapMusicPath = config.assetPath + "music/map.ogg";
+        if (musicManager.loadTrack(mapMusicPath))
         {
-            std::cerr << "Failed to load map.ogg: " << Mix_GetError() << "\n";
-        }
-        else
-        {
-            Mix_PlayMusic(mapMusic, -1);  // Loop map music
+            musicManager.play(mapMusicPath, -1, MusicChannel::Menu);
         }
         
         // Skip intro and title screen
@@ -294,20 +290,8 @@ void Game::loadAssets()
     polarBear.loadWindWalkTexture(renderer, polarPath + "polar-bear-wind-walking.png");
     polarBear.loadWindJumpTexture(renderer, polarPath + "polar-bear-wind-jump.png");
 
-    // Default to non-element; allow dev override via --element
+    // Default to no element equipped
     polarBear.setElement(PolarBear::Element::None);
-    std::string elem = config.startElement;
-    std::transform(elem.begin(), elem.end(), elem.begin(), [](unsigned char c) {
-        return static_cast<char>(std::tolower(c));
-    });
-    if (elem == "water")
-    {
-        polarBear.setElement(PolarBear::Element::Water);
-    }
-    else if (elem == "wind")
-    {
-        polarBear.setElement(PolarBear::Element::Wind);
-    }
 
     // Initialize bear components only if not already added (don't re-add on stage transitions)
     if (polarBear.components.empty())
@@ -317,13 +301,6 @@ void Game::loadAssets()
         polarBear.addComponent(std::make_unique<WindArmorComponent>());
         polarBear.addComponent(std::make_unique<SwimmingComponent>());
         polarBear.addComponent(std::make_unique<ClimbingComponent>());
-    }
-
-    // Enable climb skill and texture if configured
-    polarBear.canClimb = config.enableClimbSkill;
-    if (polarBear.canClimb)
-    {
-        polarBear.loadClimbTexture(renderer, polarPath + std::string("bear-climbing.png"));
     }
 
     // Initialize GameState from command-line options (dev mode)
@@ -361,12 +338,6 @@ void Game::loadAssets()
         gameState.unlockSlash();
     }
 
-    // Apply --enable-climb flag (legacy option)
-    if (config.enableClimbSkill)
-    {
-        gameState.unlockClimb();
-    }
-
     // Parse --armors option
     if (!config.devArmors.empty())
     {
@@ -394,6 +365,15 @@ void Game::loadAssets()
             gameState.unlockFireArmor();
         else if (armorsList == "water")
             gameState.unlockWaterArmor();
+    }
+
+    // Sync polar bear abilities from GameState after parsing dev options
+    polarBear.canClimb = gameState.hasClimb();
+    
+    // Load climb texture if climb is unlocked
+    if (polarBear.canClimb && !polarBear.climbTexture)
+    {
+        polarBear.loadClimbTexture(renderer, polarPath + std::string("bear-climbing.png"));
     }
 
     // Set initial player position and state. If a polar_bear_spawn marker exists, use it.
@@ -579,15 +559,7 @@ void Game::loadAssets()
         }
     }
 
-    // Load power-up cue music
-    {
-        const std::string puPath = config.assetPath + std::string("music/power_up.ogg");
-        powerUpMusic             = Mix_LoadMUS(puPath.c_str());
-        if (!powerUpMusic)
-        {
-            std::cerr << "Failed to load power_up.ogg: " << Mix_GetError() << "\n";
-        }
-    }
+    // Power-up music loaded on-demand when needed
 
     // Load optional end scene assets
     if (!stageInfo->endSceneTexture.empty())
@@ -610,11 +582,7 @@ void Game::loadAssets()
         if (!stageInfo->endSceneMusic.empty())
         {
             const std::string endMusicPath = config.assetPath + stageInfo->endSceneMusic;
-            endSceneMusic                  = Mix_LoadMUS(endMusicPath.c_str());
-            if (!endSceneMusic)
-            {
-                std::cerr << "Failed to load end scene music: " << Mix_GetError() << "\n";
-            }
+            musicManager.loadTrack(endMusicPath);
         }
     }
 
@@ -624,31 +592,18 @@ void Game::loadAssets()
     if (stageInfo->isBoss && !stageInfo->bossMusic.empty())
     {
         const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
-        bossMusic                       = Mix_LoadMUS(bossMusicPath.c_str());
-        if (!bossMusic)
-        {
-            std::cerr << "Failed to load boss music '" << bossMusicPath << "': " << Mix_GetError()
-                      << "\n";
-        }
+        musicManager.loadTrack(bossMusicPath);
     }
     else if (!stageInfo->backgroundMusic.empty())
     {
         const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
         
-        backgroundMusic = Mix_LoadMUS(musicPath.c_str());
-        if (!backgroundMusic)
-        {
-            std::cerr << "Failed to load music '" << musicPath << "': " << Mix_GetError() << "\n";
-        }
-        else
+        if (musicManager.loadTrack(musicPath))
         {
             // Only autoplay if NOT showing intro/title (e.g., direct stage load or world map transition)
             if (!showIntroCutscene && !showTitleScreen)
             {
-                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
-                {
-                    std::cerr << "Failed to play music: " << Mix_GetError() << "\n";
-                }
+                musicManager.play(musicPath, -1, MusicChannel::Background);
             }
         }
     }
@@ -736,7 +691,7 @@ void Game::handleInput()
             titleFadingOut  = true;
             titleFadeTimer  = 0.0f;
             // Stop any playing title music
-            Mix_HaltMusic();
+            musicManager.stop();
         }
 
         // Advance title fade-out
@@ -1014,10 +969,7 @@ void Game::update(float dt)
                     stageName = StageNames::SnowyCliffs; // default fallback
 
                 // Stop map music
-                if (mapMusic)
-                {
-                    Mix_HaltMusic();
-                }
+                musicManager.stop();
 
                 // Reset gameplay state
                 enemies.clear();
@@ -1047,7 +999,7 @@ void Game::update(float dt)
         if (stageFadeTimer >= stageFadeDuration)
         {
             // Fade-out complete: stop music, clear state, load new stage
-            Mix_HaltMusic();
+            musicManager.stop();
             
             enemies.clear();
             fireballs.clear();
@@ -1114,11 +1066,10 @@ void Game::update(float dt)
                 {
                     // Play pickup music after delay
                     pickupMusicStarted = true;
-                    if (powerUpMusic)
+                    const std::string powerUpPath = config.assetPath + "music/power_up.ogg";
+                    if (musicManager.loadTrack(powerUpPath))
                     {
-                        if (Mix_PlayMusic(powerUpMusic, 1) < 0)
-                            std::cerr << "Failed to play power_up music: " << Mix_GetError()
-                                      << "\n";
+                        musicManager.play(powerUpPath, 1, MusicChannel::PowerUp);
                     }
                 }
             }
@@ -1126,7 +1077,7 @@ void Game::update(float dt)
             else
             {
                 // Check if music finished
-                if (Mix_PlayingMusic() == 0)
+                if (!musicManager.isPlaying())
                 {
                     pickupPostMusicTimer += dt;
                     // After post-music silence, resume game
@@ -1149,13 +1100,14 @@ void Game::update(float dt)
                         else
                         {
                             // Resume background music
-                            if (backgroundMusic)
+                            const StageInfo* stageInfo = StageRegistry::find(stageName);
+                            if (stageInfo && !stageInfo->backgroundMusic.empty())
                             {
-                                if (Mix_PlayMusic(backgroundMusic, -1) < 0)
-                                    std::cerr << "Failed to resume background music: " << Mix_GetError()
-                                              << "\n";
-                                // Restore volume
-                                Mix_VolumeMusic(96);
+                                const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
+                                if (musicManager.loadTrack(musicPath))
+                                {
+                                    musicManager.play(musicPath, -1, MusicChannel::Background);
+                                }
                             }
                         }
                     }
@@ -1178,12 +1130,11 @@ void Game::update(float dt)
                     endSceneShowing = true;
                     endFadeInTimer  = 0.0f;
                     // Ensure previous music is stopped; then play end scene music
-                    Mix_HaltMusic();
-                    if (endSceneMusic)
+                    musicManager.stop();
+                    const std::string endMusicPath = config.assetPath + "music/stage_clear.ogg";
+                    if (musicManager.loadTrack(endMusicPath))
                     {
-                        if (Mix_PlayMusic(endSceneMusic, 1) < 0)
-                            std::cerr << "Failed to play end scene music: " << Mix_GetError()
-                                      << "\n";
+                        musicManager.play(endMusicPath, 1, MusicChannel::Cutscene);
                     }
                 }
             }
@@ -1252,15 +1203,18 @@ void Game::update(float dt)
                 // Start boss music only if boss is still alive
                 if (bossAlive)
                 {
-                    Mix_HaltMusic();
-                    if (bossMusic)
+                    musicManager.stop();
+                    const StageInfo* stageInfo = StageRegistry::find(stageName);
+                    if (stageInfo && !stageInfo->bossMusic.empty())
                     {
-                        if (Mix_PlayMusic(bossMusic, 0) < 0)
-                            std::cerr << "Failed to play boss music: " << Mix_GetError() << "\n";
-                        else
+                        const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
+                        if (musicManager.loadTrack(bossMusicPath))
                         {
-                            bossMusicStarted = true;
-                            bossMusicLooped  = false;
+                            if (musicManager.play(bossMusicPath, 0, MusicChannel::Boss))
+                            {
+                                bossMusicStarted = true;
+                                bossMusicLooped  = false;
+                            }
                         }
                     }
                 }
@@ -1414,14 +1368,16 @@ void Game::update(float dt)
     }
 
     // Once boss music finishes the initial play, switch to looping without restarting
-    if (bossAlive && bossMusicStarted && !bossMusicLooped && Mix_PlayingMusic() == 0)
+    if (bossAlive && bossMusicStarted && !bossMusicLooped && !musicManager.isPlaying())
     {
-        if (bossMusic)
+        const StageInfo* stageInfo = StageRegistry::find(stageName);
+        if (stageInfo && !stageInfo->bossMusic.empty())
         {
-            if (Mix_PlayMusic(bossMusic, -1) < 0)
-                std::cerr << "Failed to loop boss music: " << Mix_GetError() << "\n";
-            else
+            const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
+            if (musicManager.play(bossMusicPath, -1, MusicChannel::Boss))
+            {
                 bossMusicLooped = true;
+            }
         }
     }
 
@@ -2071,19 +2027,11 @@ void Game::clean()
         SDL_DestroyTexture(polarBear.slashTexture);
     if (polarBear.climbTexture)
         SDL_DestroyTexture(polarBear.climbTexture);
-    if (powerUpMusic)
-        Mix_FreeMusic(powerUpMusic);
-    if (mapMusic)
-        Mix_FreeMusic(mapMusic);
 
-    // Stop and free music, close audio.
-    if (Mix_PlayingMusic())
-        Mix_HaltMusic();
-    if (backgroundMusic)
-    {
-        Mix_FreeMusic(backgroundMusic);
-        backgroundMusic = nullptr;
-    }
+    // Stop and unload all music through MusicManager
+    musicManager.stop();
+    musicManager.unloadAll();
+
     if (slashSound)
     {
         Mix_FreeChunk(slashSound);

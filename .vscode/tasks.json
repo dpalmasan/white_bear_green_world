@@ -4,7 +4,7 @@
 		{
 			"label": "Build polar_bear",
 			"type": "shell",
-			"command": "cmake --build /home/dpalmasan/white_bear_green_world/build -- -j4 && /home/dpalmasan/white_bear_green_world/build/bin/polar_bear --stage snowy-cliffs-boss --enable-climb",
+			"command": "cmake --build /home/dpalmasan/white_bear_green_world/build -- -j4 && /home/dpalmasan/white_bear_green_world/build/bin/polar_bear --stage snowy-cliffs-boss --skills climb",
 			"args": [],
 			"isBackground": false,
 			"problemMatcher": [
