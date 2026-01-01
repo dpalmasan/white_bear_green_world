@@ -58,6 +58,29 @@ void Input::handleEvents(bool& running)
     moveRight = keystate[SDL_SCANCODE_D] != 0;
     climbUp = keystate[SDL_SCANCODE_W] != 0;
     climbDown = keystate[SDL_SCANCODE_S] != 0;
+    
+    // Single-press navigation for UI (W/S keys)
+    bool upDown = keystate[SDL_SCANCODE_W] != 0;
+    if (upDown && !upButtonHeld)
+    {
+        upPressed = true;
+        upButtonHeld = true;
+    }
+    else if (!upDown)
+    {
+        upButtonHeld = false;
+    }
+    
+    bool downDown = keystate[SDL_SCANCODE_S] != 0;
+    if (downDown && !downButtonHeld)
+    {
+        downPressed = true;
+        downButtonHeld = true;
+    }
+    else if (!downDown)
+    {
+        downButtonHeld = false;
+    }
 
     // Single-press buttons with debouncing
     bool jumpDown = keystate[SDL_SCANCODE_J] != 0;
@@ -91,4 +114,6 @@ void Input::resetFrameEvents()
     pausePressed = false;
     selectPressed = false;
     menuPressed = false;
+    upPressed = false;
+    downPressed = false;
 }

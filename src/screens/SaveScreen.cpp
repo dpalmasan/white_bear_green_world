@@ -109,18 +109,37 @@ bool SaveScreen::handleInput(const Input& input)
         return true;  // Close screen
     }
 
-    // Up/Down to move cursor
-    if (input.isClimbingUp())
+    // Up/Down to move cursor (using single-press for proper navigation)
+    if (input.isUpPressed())
     {
         selectedSlot_--;
         if (selectedSlot_ < 0)
             selectedSlot_ = 2;  // Wrap to bottom
     }
-    else if (input.isClimbingDown())
+    else if (input.isDownPressed())
     {
         selectedSlot_++;
         if (selectedSlot_ > 2)
             selectedSlot_ = 0;  // Wrap to top
+    }
+
+    // J key confirms action (load in LOAD mode, handled externally in SAVE mode)
+    if (input.isJumping())
+    {
+        if (mode_ == SaveScreenMode::LOAD)
+        {
+            // Only allow loading if the selected slot has a save file
+            if (slotHasSave_[selectedSlot_])
+            {
+                shouldLoad_ = true;
+                if (confirmSound_)
+                {
+                    Mix_PlayChannel(-1, confirmSound_, 0);
+                }
+                return true;  // Close screen and signal to load
+            }
+            // If slot is empty, play error sound or do nothing
+        }
     }
 
     return false;  // Keep screen open

@@ -196,6 +196,13 @@ void Game::loadAssets()
                   << config.assetPath << "'\n";
     }
 
+    // Load save screen assets for loading from title screen
+    loadScreen.setMode(SaveScreenMode::LOAD);
+    if (!loadScreen.loadAssets(renderer, config.assetPath))
+    {
+        std::cerr << "Failed to load save screen assets for loading\n";
+    }
+
     const StageInfo* stageInfo = StageRegistry::find(stageName);
     if (!stageInfo)
     {
@@ -723,13 +730,23 @@ void Game::handleInput()
             titleScreen.handleInput(e);
         }
         
-        // If user confirmed start (on New Game), begin a 2s fade-out
+        // If user confirmed start, check which option was selected
         if (titleScreen.shouldStartGame() && !titleFadingOut && !titleFadingIn)
         {
-            titleFadingOut  = true;
-            titleFadeTimer  = 0.0f;
-            // Stop any playing title music
-            musicManager.stop();
+            if (titleScreen.shouldContinue())
+            {
+                // Continue selected - show load screen
+                showLoadScreen = true;
+                showTitleScreen = false;
+            }
+            else
+            {
+                // New Game selected - start fade-out to new game
+                titleFadingOut  = true;
+                titleFadeTimer  = 0.0f;
+                // Stop any playing title music
+                musicManager.stop();
+            }
         }
 
         // Advance title fade-out
@@ -761,6 +778,59 @@ void Game::handleInput()
             }
         }
 
+        return;
+    }
+    
+    // Handle load screen input (when Continue selected from title)
+    if (showLoadScreen)
+    {
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
+        {
+            if (e.type == SDL_QUIT)
+            {
+                running = false;
+            }
+        }
+        
+        // Process input for load screen
+        input.handleEvents(running);
+        bool shouldClose = loadScreen.handleInput(input);
+        
+        if (shouldClose)
+        {
+            if (loadScreen.shouldLoadGame())
+            {
+                // User selected a save slot to load - load the game state
+                gameState = loadScreen.getSelectedSlotState();
+                
+                // Apply loaded state to the polar bear (only canClimb is stored in PolarBear)
+                polarBear.canClimb = gameState.hasClimb();
+                
+                // Transition to world map to select stage
+                showLoadScreen = false;
+                config.showWorldMap = true;
+                
+                // Stop title music
+                musicManager.stop();
+                
+                // Clear title screen
+                titleScreen.reset();
+                titleScreen.clean();
+                
+                // Load world map
+                loadAssets();
+            }
+            else
+            {
+                // User cancelled (ESC/Tab) - return to title screen
+                showLoadScreen = false;
+                showTitleScreen = true;
+                titleScreen.reset();
+            }
+        }
+        
+        input.resetFrameEvents();
         return;
     }
     // Handle all SDL events and keyboard state
@@ -1681,20 +1751,32 @@ void Game::render()
             Uint8 alpha = static_cast<Uint8>(255 * t);  // clear -> black
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
-            SDL_Rect full{0, 0, lw, lh};
-            SDL_RenderFillRect(renderer, &full);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            SDL_Rect fullScreen = {0, 0, lw, lh};
+            SDL_RenderFillRect(renderer, &fullScreen);
         }
-        else if (titleFadingIn)
+        if (titleFadingIn)
         {
             float t     = std::min(titleFadeTimer / titleFadeDuration, 1.0f);
             Uint8 alpha = static_cast<Uint8>(255 * (1.0f - t));  // black -> clear
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
-            SDL_Rect full{0, 0, lw, lh};
-            SDL_RenderFillRect(renderer, &full);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+            SDL_Rect fullScreen = {0, 0, lw, lh};
+            SDL_RenderFillRect(renderer, &fullScreen);
         }
+        SDL_RenderPresent(renderer);
+        return;
+    }
+    
+    // Render load screen if active
+    if (showLoadScreen)
+    {
+        // Use a temporary camera for rendering (same dimensions as game camera)
+        Camera tempCamera;
+        tempCamera.width = windowWidth;
+        tempCamera.height = windowHeight;
+        tempCamera.x = 0;
+        tempCamera.y = 0;
+        loadScreen.render(renderer, tempCamera);
         SDL_RenderPresent(renderer);
         return;
     }

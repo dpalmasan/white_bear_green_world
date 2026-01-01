@@ -8,20 +8,37 @@
 #include "core/GameConstants.h"
 #include "systems/GameState.h"
 
+// SaveScreen mode: SAVE (from world map) or LOAD (from title screen)
+enum class SaveScreenMode
+{
+    SAVE,  // Save current game state to selected slot
+    LOAD   // Load game state from selected slot
+};
+
 // SaveScreen displays 3 save slots with game progress icons
-// Accessible via ESC/Tab from world map only
+// Accessible via ESC/Tab from world map (SAVE) or from title screen Continue option (LOAD)
 class SaveScreen
 {
 public:
     SaveScreen() = default;
+    explicit SaveScreen(SaveScreenMode mode) : mode_(mode) {}
     ~SaveScreen();
 
     // Load all textures and sounds from asset path
     bool loadAssets(SDL_Renderer* renderer, const std::string& assetPath);
     
-    // Handle input (up/down to move cursor, ESC/Tab to close)
+    // Handle input (up/down to move cursor, ESC/Tab to close, J to confirm)
     // Returns true if screen should close
     bool handleInput(const class Input& input);
+    
+    // Check if user selected a slot to load (only in LOAD mode)
+    bool shouldLoadGame() const { return shouldLoad_; }
+    
+    // Get the GameState from the selected slot (for loading)
+    const GameState& getSelectedSlotState() const { return slotStates_[selectedSlot_]; }
+    
+    // Set the screen mode (SAVE or LOAD)
+    void setMode(SaveScreenMode mode) { mode_ = mode; shouldLoad_ = false; }
     
     // Render the save screen (background, slots, cursor)
     void render(SDL_Renderer* renderer, const Camera& camera);
@@ -44,7 +61,11 @@ private:
     SDL_Texture* iconsTexture_ = nullptr;    // Spritesheet of icons
     
     // Sound effects
-    Mix_Chunk* confirmSound_ = nullptr;       // Sound when saving
+    Mix_Chunk* confirmSound_ = nullptr;       // Sound when saving/loading
+    
+    // Screen mode and state
+    SaveScreenMode mode_ = SaveScreenMode::SAVE;
+    bool shouldLoad_ = false;  // Set to true when user confirms load in LOAD mode
     
     // Cursor state
     int selectedSlot_ = 0;  // 0-2 for three slots

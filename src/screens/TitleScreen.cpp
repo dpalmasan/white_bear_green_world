@@ -238,9 +238,8 @@ void TitleScreen::handleInput(SDL_Event& event)
             case SDLK_j:
             case SDLK_k:
             case SDLK_RETURN:
-                // Confirm selection only when "New Game" is selected
-                if (selectedIndex == 1)
-                    startGame = true;
+                // Confirm selection: New Game (index 1) or Continue (index 0)
+                startGame = true;
                 break;
         }
     }

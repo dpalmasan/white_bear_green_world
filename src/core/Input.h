@@ -30,6 +30,10 @@ public:
     bool isQuitPressed() const { return quitPressed; }
     bool isMenuPressed() const { return menuPressed; }
     
+    // Single-press navigation (for menus/UI)
+    bool isUpPressed() const { return upPressed; }
+    bool isDownPressed() const { return downPressed; }
+    
     // Reset single-frame events
     void resetFrameEvents();
 
@@ -52,6 +56,8 @@ private:
     bool selectPressed = false;
     bool quitPressed = false;
     bool menuPressed = false;
+    bool upPressed = false;
+    bool downPressed = false;
 
     // Mode tracking
     bool worldMapActive = false;
@@ -59,4 +65,6 @@ private:
     bool attackButtonHeld = false;
     bool pauseButtonHeld = false;
     bool menuButtonHeld = false;
+    bool upButtonHeld = false;
+    bool downButtonHeld = false;
 };

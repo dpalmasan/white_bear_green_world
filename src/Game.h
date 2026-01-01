@@ -17,6 +17,7 @@
 #include "systems/Config.h"
 #include "systems/MusicManager.h"
 #include "screens/Cutscene.h"
+#include "screens/SaveScreen.h"
 #include "effects/Explosion.h"
 #include "systems/GameState.h"
 #include "systems/TileMap.h"
@@ -123,8 +124,10 @@ class Game
     // Intro and title screen
     Cutscene introCutscene;
     TitleScreen titleScreen;
+    SaveScreen loadScreen;  // For loading saves from title screen
     bool showIntroCutscene     = true;   // Start with intro sequence
     bool showTitleScreen       = false;  // Show after intro completes
+    bool showLoadScreen        = false;  // Show when Continue selected from title
     bool inCutsceneToTitleFade = false;  // Transitioning with fade to black
     float fadeToBlackTimer     = 0.0f;
     float fadeToBlackDuration  = 1.0f;   // 1 second fade to black
