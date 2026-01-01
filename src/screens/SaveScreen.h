@@ -89,7 +89,7 @@ private:
     };
     
     // Render a single icon from the spritesheet
-    void renderIcon(SDL_Renderer* renderer, IconType icon, int x, int y, int scaledSize);
+    void renderIcon(SDL_Renderer* renderer, IconType icon, int x, int y, int scaledWidth, int scaledHeight);
     
     // Render game state icons for a specific slot
     void renderSlotIcons(SDL_Renderer* renderer, int slotIndex, const GameState& state, int cameraWidth, int cameraHeight);

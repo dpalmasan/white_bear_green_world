@@ -157,22 +157,23 @@ void SaveScreen::render(SDL_Renderer* renderer, const Camera& camera)
     SDL_RenderCopy(renderer, cursorTexture_, nullptr, &cursorRect);
 }
 
-void SaveScreen::renderIcon(SDL_Renderer* renderer, IconType icon, int x, int y, int scaledSize)
+void SaveScreen::renderIcon(SDL_Renderer* renderer, IconType icon, int x, int y, int scaledWidth, int scaledHeight)
 {
     int iconIndex = static_cast<int>(icon);
     SDL_Rect src{iconIndex * ICON_SIZE, 0, ICON_SIZE, ICON_SIZE};
-    SDL_Rect dst{x, y, scaledSize, scaledSize};
+    SDL_Rect dst{x, y, scaledWidth, scaledHeight};
     SDL_RenderCopy(renderer, iconsTexture_, &src, &dst);
 }
 
 void SaveScreen::renderSlotIcons(SDL_Renderer* renderer, int slotIndex, const GameState& state, int cameraWidth, int cameraHeight)
 {
-    // Calculate scaling factors
+    // Calculate scale factors based on camera dimensions (same as Menu)
     float scaleX = static_cast<float>(cameraWidth) / GameConstants::Display::LOGICAL_WIDTH;
     float scaleY = static_cast<float>(cameraHeight) / GameConstants::Display::LOGICAL_HEIGHT;
     
     int slotY = getSlotY(slotIndex, cameraHeight);
-    int scaledIconSize = static_cast<int>(ICON_SIZE * scaleX);
+    int scaledIconWidth = static_cast<int>(ICON_SIZE * scaleX);
+    int scaledIconHeight = static_cast<int>(ICON_SIZE * scaleY);
     int scaledEffectiveSize = static_cast<int>(ICON_EFFECTIVE_SIZE * scaleX);
 
     // Render hearts (at relative position from slot top)
@@ -183,7 +184,7 @@ void SaveScreen::renderSlotIcons(SDL_Renderer* renderer, int slotIndex, const Ga
     for (int i = 0; i < state.getMaxHearts(); ++i)
     {
         IconType heartIcon = (i < state.getCurrentHearts()) ? IconType::FullHeart : IconType::EmptyHeart;
-        renderIcon(renderer, heartIcon, heartX, heartY, scaledIconSize);
+        renderIcon(renderer, heartIcon, heartX, heartY, scaledIconWidth, scaledIconHeight);
         heartX += scaledEffectiveSize + 2 * scaledHeartSpacing;
     }
 
@@ -194,48 +195,48 @@ void SaveScreen::renderSlotIcons(SDL_Renderer* renderer, int slotIndex, const Ga
     if (state.hasEarthArmor())
     {
         int earthArmorX = armorX + scaledEffectiveSize + scaledArmorSpacing;
-        renderIcon(renderer, IconType::EarthArmor, earthArmorX, armorY, scaledIconSize);
+        renderIcon(renderer, IconType::EarthArmor, earthArmorX, armorY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasWindArmor())
     {
         int windArmorX = armorX  + 2 * (scaledEffectiveSize + scaledArmorSpacing);
-        renderIcon(renderer, IconType::WindArmor, windArmorX, armorY, scaledIconSize);
+        renderIcon(renderer, IconType::WindArmor, windArmorX, armorY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasFireArmor())
     {
         int fireArmorX = armorX + 3 * (scaledEffectiveSize + scaledArmorSpacing);
-        renderIcon(renderer, IconType::FireArmor, fireArmorX, armorY, scaledIconSize);
+        renderIcon(renderer, IconType::FireArmor, fireArmorX, armorY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasWaterArmor())
     {
         int waterArmorX = armorX + 4 * (scaledEffectiveSize + scaledArmorSpacing);
-        renderIcon(renderer, IconType::WaterArmor, waterArmorX, armorY, scaledIconSize);
+        renderIcon(renderer, IconType::WaterArmor, waterArmorX, armorY, scaledIconWidth, scaledIconHeight);
     }
 
-    // Render skills (gap after armors)
-    int skillY = heartY + static_cast<int>(ARMOR_OFFSET_Y * scaleY);
+    // Render skills (same row as armors)
+    int skillY = armorY;
     int skillX = static_cast<int>(HEART_START_X * scaleX) + static_cast<int>(SKILL_OFFSET_X * scaleX);
     int scaledSkillSpacing = static_cast<int>(SKILL_SPACING * scaleX);
     
     if (state.hasSlash())
     {
-        int slashX = skillX + scaledIconSize + scaledSkillSpacing;
-        renderIcon(renderer, IconType::Slash, slashX, skillY, scaledIconSize);
+        int slashX = skillX + scaledIconWidth + scaledSkillSpacing;
+        renderIcon(renderer, IconType::Slash, slashX, skillY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasIceBreath())
     {
-        int iceBreathX = skillX + 2 * (scaledIconSize + scaledSkillSpacing);
-        renderIcon(renderer, IconType::IceBreath, iceBreathX, skillY, scaledIconSize);
+        int iceBreathX = skillX + 2 * (scaledIconWidth + scaledSkillSpacing);
+        renderIcon(renderer, IconType::IceBreath, iceBreathX, skillY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasClimb())
     {
-        int climbX = skillX + 3 * (scaledIconSize + scaledSkillSpacing);
-        renderIcon(renderer, IconType::Climb, climbX, skillY, scaledIconSize);
+        int climbX = skillX + 3 * (scaledIconWidth + scaledSkillSpacing);
+        renderIcon(renderer, IconType::Climb, climbX, skillY, scaledIconWidth, scaledIconHeight);
     }
     if (state.hasDash())
     {
-        int dashX = skillX + 4 * (scaledIconSize + scaledSkillSpacing);
-        renderIcon(renderer, IconType::Dash, dashX, skillY, scaledIconSize);
+        int dashX = skillX + 4 * (scaledIconWidth + scaledSkillSpacing);
+        renderIcon(renderer, IconType::Dash, dashX, skillY, scaledIconWidth, scaledIconHeight);
     }
 }
 

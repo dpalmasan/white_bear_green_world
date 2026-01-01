@@ -628,7 +628,6 @@ void Game::handleInput()
             }
             else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
-                // Update world map rendering when window is resized
                 SDL_GetWindowSize(window, &windowWidth, &windowHeight);
                 SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
             }
@@ -715,6 +714,11 @@ void Game::handleInput()
             if (e.type == SDL_QUIT)
             {
                 running = false;
+            }
+            else if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            {
+                SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+                SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
             }
             titleScreen.handleInput(e);
         }
