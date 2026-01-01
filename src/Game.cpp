@@ -147,6 +147,46 @@ void Game::loadAssets()
             gameState.unlockWaterArmor();
     }
     
+    // Parse --bosses option (marks bosses as defeated for testing)
+    if (!config.devBosses.empty())
+    {
+        std::string bossesList = config.devBosses;
+        size_t pos = 0;
+        while ((pos = bossesList.find(',')) != std::string::npos)
+        {
+            std::string bossName = bossesList.substr(0, pos);
+            // Mark boss as defeated in current stage (assumes format "stage:boss" or just "boss")
+            size_t colonPos = bossName.find(':');
+            if (colonPos != std::string::npos)
+            {
+                std::string stage = bossName.substr(0, colonPos);
+                std::string boss = bossName.substr(colonPos + 1);
+                gameState.markBossDefeated(stage, boss);
+            }
+            else
+            {
+                // No stage specified, use current stage
+                gameState.markBossDefeated(stageName, bossName);
+            }
+            bossesList.erase(0, pos + 1);
+        }
+        // Handle last boss (or only boss if no commas)
+        if (!bossesList.empty())
+        {
+            size_t colonPos = bossesList.find(':');
+            if (colonPos != std::string::npos)
+            {
+                std::string stage = bossesList.substr(0, colonPos);
+                std::string boss = bossesList.substr(colonPos + 1);
+                gameState.markBossDefeated(stage, boss);
+            }
+            else
+            {
+                gameState.markBossDefeated(stageName, bossesList);
+            }
+        }
+    }
+    
     // Query the actual current window size (in case window was resized)
     int actualWindowWidth = 0, actualWindowHeight = 0;
     SDL_GetWindowSize(window, &actualWindowWidth, &actualWindowHeight);
@@ -402,16 +442,26 @@ void Game::loadAssets()
         if (!bossTiles.empty())
         {
             const Tile *bt = bossTiles.front();
-            float spawnX   = bt->x * map.tileSize;
-            float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
-
-            // Instantiate boss based on type
-            if (bt->boss == "snow-robot")
+            
+            // Check if this boss has already been defeated (generic check using boss name from tile)
+            bool alreadyDefeated = gameState.isBossDefeated(stageName, bt->boss);
+            
+            // Only spawn boss if not already defeated
+            if (!alreadyDefeated)
             {
-                boss = std::make_unique<SnowRobotBoss>();
-                boss->loadAssets(renderer, config.assetPath);
-                boss->setPosition(spawnX, spawnY);
-                bossHasSpawn = true;
+                float spawnX   = bt->x * map.tileSize;
+                float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
+
+                // Instantiate boss based on type
+                if (bt->boss == "snow-robot")
+                {
+                    boss = std::make_unique<SnowRobotBoss>();
+                    boss->loadAssets(renderer, config.assetPath);
+                    boss->setPosition(spawnX, spawnY);
+                    bossHasSpawn = true;
+                }
+                // Add more boss types here as they're implemented
+                // else if (bt->boss == "fire-dragon") { ... }
             }
         }
     }
@@ -543,16 +593,26 @@ void Game::loadAssets()
         if (!bossSpawnTiles.empty())
         {
             const Tile *bt = bossSpawnTiles.front();
-            float spawnX   = bt->x * map.tileSize;
-            float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
-
-            // Instantiate boss based on type
-            if (bt->boss == "snow-robot")
+            
+            // Check if this boss has already been defeated (generic check using boss name from tile)
+            bool alreadyDefeated = gameState.isBossDefeated(stageName, bt->boss);
+            
+            // Only spawn boss if not already defeated
+            if (!alreadyDefeated)
             {
-                boss = std::make_unique<SnowRobotBoss>();
-                boss->loadAssets(renderer, config.assetPath);
-                boss->setPosition(spawnX, spawnY);
-                bossHasSpawn = true;
+                float spawnX   = bt->x * map.tileSize;
+                float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
+
+                // Instantiate boss based on type
+                if (bt->boss == "snow-robot")
+                {
+                    boss = std::make_unique<SnowRobotBoss>();
+                    boss->loadAssets(renderer, config.assetPath);
+                    boss->setPosition(spawnX, spawnY);
+                    bossHasSpawn = true;
+                }
+                // Add more boss types here as they're implemented
+                // else if (bt->boss == "fire-dragon") { ... }
             }
         }
     }
@@ -1421,6 +1481,9 @@ void Game::update(float dt)
             // Boss just died and fade is complete, trigger camera unlock and cleanup
             bossAlive    = false;
             bossHasSpawn = false;
+
+            // Mark boss as defeated in game state (use boss's name)
+            gameState.markBossDefeated(stageName, boss->getName());
 
             // Spawn heart power-up at boss location
             PowerUp heart;

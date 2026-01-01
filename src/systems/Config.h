@@ -25,9 +25,10 @@ struct Config
     bool showWorldMap     = false;  // start on world map screen
     bool worldMapDebug    = false;  // draw target markers on world map
 
-    // Dev: comma-separated armor/skill lists
+    // Dev: comma-separated armor/skill/boss lists
     std::string devArmors = "";  // e.g., "earth,wind,fire,water"
     std::string devSkills = "";  // e.g., "slash,ice_breath,climb,dash"
+    std::string devBosses = "";  // e.g., "snow-robot" (marks bosses as defeated)
 };
 
 // Parse command-line arguments into a Config.
@@ -42,4 +43,5 @@ struct Config
 //   --pause-volume N
 //   --armors LIST (dev: comma-separated armors, e.g., "earth,wind,fire,water")
 //   --skills LIST (dev: comma-separated skills, e.g., "slash,ice_breath,climb,dash")
+//   --bosses LIST (dev: comma-separated bosses marked as defeated, e.g., "snow-robot" or "snowy-cliffs-boss:snow-robot")
 Config parseArgs(int argc, char* argv[]);

@@ -52,6 +52,8 @@ class SnowRobotBoss : public Boss
     float getX() const override { return worldX; }
     float getY() const override { return worldY; }
     void setPosition(float x, float y) override;
+    
+    const char* getName() const override { return "snow-robot"; }
 
     // Music control
     bool shouldStartMusic() const override;

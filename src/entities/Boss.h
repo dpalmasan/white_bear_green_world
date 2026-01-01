@@ -55,6 +55,9 @@ class Boss
     virtual float getX() const                 = 0;
     virtual float getY() const                 = 0;
     virtual void setPosition(float x, float y) = 0;
+    
+    // Boss identity (for tracking defeat state)
+    virtual const char* getName() const = 0;
 
     // Music control (optional override)
     virtual bool shouldStartMusic() const { return false; }

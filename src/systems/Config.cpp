@@ -103,6 +103,10 @@ Config parseArgs(int argc, char* argv[])
         {
             cfg.devSkills = argv[++i];
         }
+        else if (arg == "--bosses" && i + 1 < argc)
+        {
+            cfg.devBosses = argv[++i];
+        }
     }
 
     return cfg;
