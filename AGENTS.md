@@ -30,6 +30,7 @@ src/
 │   └── TileMap.{h,cpp}        # Level loading from JSON
 ├── screens/                   # Full-screen UI states
 │   ├── Cutscene.{h,cpp}       # Intro cutscenes
+│   ├── SaveScreen.{h,cpp}     # Save slot selection screen (3 slots)
 │   ├── TitleScreen.{h,cpp}    # Main menu
 │   └── WorldMap.{h,cpp}       # Level selection screen
 ├── effects/                   # Visual effects
@@ -141,7 +142,26 @@ assets/
   - Cursor overlay shows current selection
 - **Assets**: `assets/images/menu/*.png`
 
-### 6. Elemental Armor System
+### 6. Save Screen System (NEW - Dec 31, 2025)
+**Files**: `src/screens/SaveScreen.{h,cpp}`
+- **Purpose**: Save slot selection screen showing 3 save slots with game progress
+- **Trigger**: ESC or Tab key (only accessible from world map)
+- **Navigation**: W/S keys (up/down through slots)
+- **Display**:
+  - Background HUD (320x240) with 3 slots
+  - Cursor overlay (320x76) at selected slot
+  - Icons (32x32) showing hearts, armors, and skills for each save
+  - Hearts displayed at (83, 33) with 3px spacing
+  - Armors 16px below hearts with 16px spacing
+  - Skills 32px gap after armors with 16px spacing
+  - 4px vertical gap between slots
+- **Assets**:
+  - `assets/images/menu/saving-game-hud.png` - Background
+  - `assets/images/menu/saving-game-cursor.png` - Selection cursor
+  - `assets/images/menu/saving-game-icons.png` - Icon spritesheet (earth, wind, fire, water, slash, ice_breath, climb, dash, full_heart, empty_heart)
+- **Integration**: SaveScreen embedded in WorldMap, only opens when in world map view
+
+### 7. Elemental Armor System
 **File**: `src/entities/PolarBear.{h,cpp}`
 - **Elements**: None, Earth, Wind, Fire, Water
 - **Wind Armor Effects**:
@@ -275,6 +295,26 @@ cmake --build build -j4
 - Previously only checked when actively pressing down (climbIntent > 0)
 - Now always checks feet position against solid tiles while climbing
 - Bear properly lands and exits climbing mode when touching ground
+
+### Magic Number Refactoring (Dec 31, 2025)
+- Created comprehensive GameConstants.h with organized namespaces
+- Refactored 15+ files to eliminate all magic numbers:
+  * PolarBear: Physics, animation, sprite dimensions
+  * Enemy classes: FrenzyWolf, Arachnoid, RobotEnemy
+  * Movement states: Normal, Swimming, Climbing
+  * Game.cpp: Display, camera, timing constants
+  * Menu: ArmorType enum, layout constants
+- 200+ magic numbers replaced with named constants
+- Improved maintainability and code clarity
+
+### Save Screen Implementation (Dec 31, 2025)
+- Created SaveScreen class to display 3 save slots
+- Shows game progress icons: hearts, armors, skills
+- Accessible via ESC/Tab from world map only
+- Assets: saving-game-hud.png, saving-game-cursor.png, saving-game-icons.png
+- Icon spritesheet with 32x32 frames (10 icons)
+- Layout uses precise positioning: hearts at (83,33), armors 16px below, skills 32px gap
+- Integrated into WorldMap for seamless save management
 
 ## Future Work
 - Implement fire/water armor mechanics (currently only wind has special behavior)

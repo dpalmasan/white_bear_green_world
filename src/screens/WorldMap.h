@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "SaveScreen.h"
+
 // Simple world map screen that renders a background image and a smooth-moving cursor
 class WorldMap
 {
@@ -42,17 +44,24 @@ class WorldMap
     int cursorOffsetX = -8;  // move 8px to the right with current math
     int cursorOffsetY = 0;
 
+    // Save screen (accessible via ESC/Tab from world map)
+    SaveScreen saveScreen;
+    bool saveScreenOpen = false;
+
     // Load assets and initialize locations
     bool load(SDL_Renderer* renderer, const std::string& assetPath);
 
     // Handle input events (arrow keys to move cursor between nearest nodes in direction)
+    // Also handles ESC/Tab to toggle save screen
     void handleEvent(const SDL_Event& e);
+    void handleInput(const class Input& input);
 
     // Update cursor interpolation
     void update(float dt);
 
     // Render map scaled to camera view, and cursor at scaled position
-    void render(SDL_Renderer* renderer, int viewW, int viewH);
+    // If save screen is open, renders that instead
+    void render(SDL_Renderer* renderer, int viewW, int viewH, const class GameState& state);
 
     // Cleanup
     void clean();

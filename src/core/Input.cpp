@@ -22,25 +22,23 @@ void Input::handleEvents(bool& running)
         {
             const SDL_Keycode key = e.key.keysym.sym;
             
+            // Tab and Escape work in both gameplay and world map
+            if (key == SDLK_ESCAPE && !pauseButtonHeld)
+            {
+                pausePressed = true;
+                pauseButtonHeld = true;
+            }
+            if (key == SDLK_TAB && !menuButtonHeld)
+            {
+                menuPressed = true;
+                menuButtonHeld = true;
+            }
+            
             if (worldMapActive)
             {
                 // World map specific input
                 if (key == SDLK_RETURN || key == SDLK_j)
                     selectPressed = true;
-            }
-            else
-            {
-                // Gameplay input
-                if (key == SDLK_ESCAPE && !pauseButtonHeld)
-                {
-                    pausePressed = true;
-                    pauseButtonHeld = true;
-                }
-                if (key == SDLK_TAB && !menuButtonHeld)
-                {
-                    menuPressed = true;
-                    menuButtonHeld = true;
-                }
             }
         }
         else if (e.type == SDL_KEYUP)

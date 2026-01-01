@@ -83,6 +83,70 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
+    // Initialize GameState from command-line options (dev mode) - MUST happen before worldmap early return
+    // Parse --skills option
+    if (!config.devSkills.empty())
+    {
+        std::string skillsList = config.devSkills;
+        size_t pos = 0;
+        while ((pos = skillsList.find(',')) != std::string::npos)
+        {
+            std::string skill = skillsList.substr(0, pos);
+            if (skill == "slash")
+                gameState.unlockSlash();
+            else if (skill == "climb")
+                gameState.unlockClimb();
+            else if (skill == "dash")
+                gameState.unlockDash();
+            else if (skill == "ice_breath")
+                gameState.unlockIceBreath();
+            skillsList.erase(0, pos + 1);
+        }
+        // Handle last skill (or only skill if no commas)
+        if (skillsList == "slash")
+            gameState.unlockSlash();
+        else if (skillsList == "climb")
+            gameState.unlockClimb();
+        else if (skillsList == "dash")
+            gameState.unlockDash();
+        else if (skillsList == "ice_breath")
+            gameState.unlockIceBreath();
+    }
+    else
+    {
+        // Default: always have slash
+        gameState.unlockSlash();
+    }
+
+    // Parse --armors option
+    if (!config.devArmors.empty())
+    {
+        std::string armorsList = config.devArmors;
+        size_t pos = 0;
+        while ((pos = armorsList.find(',')) != std::string::npos)
+        {
+            std::string armor = armorsList.substr(0, pos);
+            if (armor == "earth")
+                gameState.unlockEarthArmor();
+            else if (armor == "wind")
+                gameState.unlockWindArmor();
+            else if (armor == "fire")
+                gameState.unlockFireArmor();
+            else if (armor == "water")
+                gameState.unlockWaterArmor();
+            armorsList.erase(0, pos + 1);
+        }
+        // Handle last armor (or only armor if no commas)
+        if (armorsList == "earth")
+            gameState.unlockEarthArmor();
+        else if (armorsList == "wind")
+            gameState.unlockWindArmor();
+        else if (armorsList == "fire")
+            gameState.unlockFireArmor();
+        else if (armorsList == "water")
+            gameState.unlockWaterArmor();
+    }
+    
     // Query the actual current window size (in case window was resized)
     int actualWindowWidth = 0, actualWindowHeight = 0;
     SDL_GetWindowSize(window, &actualWindowWidth, &actualWindowHeight);
@@ -302,70 +366,6 @@ void Game::loadAssets()
         polarBear.addComponent(std::make_unique<WindArmorComponent>());
         polarBear.addComponent(std::make_unique<SwimmingComponent>());
         polarBear.addComponent(std::make_unique<ClimbingComponent>());
-    }
-
-    // Initialize GameState from command-line options (dev mode)
-    // Parse --skills option
-    if (!config.devSkills.empty())
-    {
-        std::string skillsList = config.devSkills;
-        size_t pos = 0;
-        while ((pos = skillsList.find(',')) != std::string::npos)
-        {
-            std::string skill = skillsList.substr(0, pos);
-            if (skill == "slash")
-                gameState.unlockSlash();
-            else if (skill == "climb")
-                gameState.unlockClimb();
-            else if (skill == "dash")
-                gameState.unlockDash();
-            else if (skill == "ice_breath")
-                gameState.unlockIceBreath();
-            skillsList.erase(0, pos + 1);
-        }
-        // Handle last skill (or only skill if no commas)
-        if (skillsList == "slash")
-            gameState.unlockSlash();
-        else if (skillsList == "climb")
-            gameState.unlockClimb();
-        else if (skillsList == "dash")
-            gameState.unlockDash();
-        else if (skillsList == "ice_breath")
-            gameState.unlockIceBreath();
-    }
-    else
-    {
-        // Default: always have slash
-        gameState.unlockSlash();
-    }
-
-    // Parse --armors option
-    if (!config.devArmors.empty())
-    {
-        std::string armorsList = config.devArmors;
-        size_t pos = 0;
-        while ((pos = armorsList.find(',')) != std::string::npos)
-        {
-            std::string armor = armorsList.substr(0, pos);
-            if (armor == "earth")
-                gameState.unlockEarthArmor();
-            else if (armor == "wind")
-                gameState.unlockWindArmor();
-            else if (armor == "fire")
-                gameState.unlockFireArmor();
-            else if (armor == "water")
-                gameState.unlockWaterArmor();
-            armorsList.erase(0, pos + 1);
-        }
-        // Handle last armor (or only armor if no commas)
-        if (armorsList == "earth")
-            gameState.unlockEarthArmor();
-        else if (armorsList == "wind")
-            gameState.unlockWindArmor();
-        else if (armorsList == "fire")
-            gameState.unlockFireArmor();
-        else if (armorsList == "water")
-            gameState.unlockWaterArmor();
     }
 
     // Sync polar bear abilities from GameState after parsing dev options
@@ -632,25 +632,58 @@ void Game::handleInput()
                 SDL_GetWindowSize(window, &windowWidth, &windowHeight);
                 SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
             }
-            worldMap.handleEvent(e);
             
-            // Also check for selection (Enter/J key)
-            if (e.type == SDL_KEYDOWN && (e.key.keysym.sym == SDLK_RETURN || e.key.keysym.sym == SDLK_j))
+            // Handle Tab/Escape for save screen
+            if (e.type == SDL_KEYDOWN)
             {
-                if (worldMap.currentIndex >= 0 &&
-                    worldMap.currentIndex < (int)worldMap.locations.size())
+                if (e.key.keysym.sym == SDLK_TAB || e.key.keysym.sym == SDLK_ESCAPE)
                 {
-                    const auto &loc = worldMap.locations[worldMap.currentIndex];
-                    if (loc.name == "Snowy Cliffs" || loc.name == "Wind Peaks")
+                    worldMap.saveScreenOpen = !worldMap.saveScreenOpen;
+                }
+                // Handle W/S/J navigation in save screen
+                else if (worldMap.saveScreenOpen)
+                {
+                    if (e.key.keysym.sym == SDLK_w)
                     {
-                        // Begin fade-out transition; actual load happens after fade completes
-                        wmFadingOut = true;
-                        wmFadingIn  = false;
-                        wmFadeTimer = 0.0f;
+                        worldMap.saveScreen.setSelectedSlot(
+                            (worldMap.saveScreen.getSelectedSlot() + 2) % 3);  // Move up (wrap)
+                    }
+                    else if (e.key.keysym.sym == SDLK_s)
+                    {
+                        worldMap.saveScreen.setSelectedSlot(
+                            (worldMap.saveScreen.getSelectedSlot() + 1) % 3);  // Move down (wrap)
+                    }
+                    else if (e.key.keysym.sym == SDLK_j)
+                    {
+                        // Save current game state to selected slot
+                        worldMap.saveScreen.saveToSlot(gameState);
+                    }
+                }
+                // Check for selection (Enter/J key) - only when save screen closed
+                else if (e.key.keysym.sym == SDLK_RETURN || e.key.keysym.sym == SDLK_j)
+                {
+                    if (worldMap.currentIndex >= 0 &&
+                        worldMap.currentIndex < (int)worldMap.locations.size())
+                    {
+                        const auto &loc = worldMap.locations[worldMap.currentIndex];
+                        if (loc.name == "Snowy Cliffs" || loc.name == "Wind Peaks")
+                        {
+                            // Begin fade-out transition; actual load happens after fade completes
+                            wmFadingOut = true;
+                            wmFadingIn  = false;
+                            wmFadeTimer = 0.0f;
+                        }
                     }
                 }
             }
+            
+            // Only pass navigation events to worldMap when save screen is closed
+            if (!worldMap.saveScreenOpen)
+            {
+                worldMap.handleEvent(e);
+            }
         }
+        
         return;
     }
     
@@ -950,6 +983,7 @@ void Game::update(float dt)
 
     if (config.showWorldMap)
     {
+        worldMap.handleInput(input);
         worldMap.update(dt);
         if (wmFadingOut)
         {
@@ -1672,7 +1706,7 @@ void Game::render()
             lw = camera.width;
             lh = camera.height;
         }
-        worldMap.render(renderer, lw, lh);
+        worldMap.render(renderer, lw, lh, gameState);
         // Draw fade overlays when transitioning to/from world map
         if (wmFadingOut)
         {

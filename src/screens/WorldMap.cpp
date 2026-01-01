@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <cmath>
 
+#include "core/Input.h"
+#include "systems/GameState.h"
+
 static float dot2(int ax, int ay, int bx, int by)
 {
     return static_cast<float>(ax * bx + ay * by);
@@ -106,6 +109,12 @@ bool WorldMap::load(SDL_Renderer* renderer, const std::string& assetPath)
     targetX      = cursorX;
     targetY      = cursorY;
 
+    // Load save screen assets
+    if (!saveScreen.loadAssets(renderer, assetPath))
+    {
+        return false;  // Failed to load save screen
+    }
+
     return true;
 }
 
@@ -136,6 +145,33 @@ void WorldMap::handleEvent(const SDL_Event& e)
     }
 }
 
+void WorldMap::handleInput(const Input& input)
+{
+    // ESC or Tab toggles save screen
+    if (input.isMenuPressed())
+    {
+        if (saveScreenOpen)
+        {
+            saveScreenOpen = false;
+        }
+        else
+        {
+            saveScreenOpen = true;
+        }
+        return;
+    }
+
+    // If save screen is open, route input to it
+    if (saveScreenOpen)
+    {
+        bool shouldClose = saveScreen.handleInput(input);
+        if (shouldClose)
+        {
+            saveScreenOpen = false;
+        }
+    }
+}
+
 void WorldMap::update(float dt)
 {
     // Smoothly approach target at constant speed
@@ -158,8 +194,18 @@ void WorldMap::update(float dt)
     }
 }
 
-void WorldMap::render(SDL_Renderer* renderer, int viewW, int viewH)
+void WorldMap::render(SDL_Renderer* renderer, int viewW, int viewH, const GameState& state)
 {
+    // If save screen is open, render it instead of the map
+    if (saveScreenOpen)
+    {
+        Camera tempCamera;  // Create temp camera with logical dimensions
+        tempCamera.width = viewW;
+        tempCamera.height = viewH;
+        saveScreen.render(renderer, tempCamera);
+        return;
+    }
+
     // Render background scaled to fit view preserving aspect ratio
     int texW = 0, texH = 0;
     SDL_QueryTexture(background, nullptr, nullptr, &texW, &texH);
