@@ -798,6 +798,9 @@ void Game::handleInput()
                 // Continue selected - show load screen
                 showLoadScreen = true;
                 showTitleScreen = false;
+                loadScreenFirstFrame = true;  // Skip input on first frame
+                // Reset input to prevent J key from carrying over to load screen
+                input.resetFrameEvents();
             }
             else
             {
@@ -851,6 +854,15 @@ void Game::handleInput()
             {
                 running = false;
             }
+        }
+        
+        // Skip input processing on first frame to prevent key bleed-through
+        if (loadScreenFirstFrame)
+        {
+            loadScreenFirstFrame = false;
+            input.handleEvents(running);
+            input.resetFrameEvents();
+            return;
         }
         
         // Process input for load screen

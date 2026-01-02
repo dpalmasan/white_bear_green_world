@@ -128,6 +128,7 @@ class Game
     bool showIntroCutscene     = true;   // Start with intro sequence
     bool showTitleScreen       = false;  // Show after intro completes
     bool showLoadScreen        = false;  // Show when Continue selected from title
+    bool loadScreenFirstFrame  = false;  // Skip input on first frame of load screen
     bool inCutsceneToTitleFade = false;  // Transitioning with fade to black
     float fadeToBlackTimer     = 0.0f;
     float fadeToBlackDuration  = 1.0f;   // 1 second fade to black
