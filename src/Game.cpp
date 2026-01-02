@@ -495,7 +495,10 @@ void Game::loadAssets()
     }
 
     // Load background texture for the level (stage-specific)
-    std::string backgroundFilename = stageName + ".png";
+    // Use custom backgroundImage from StageInfo if specified, otherwise default to stageName.png
+    std::string backgroundFilename = stageInfo->backgroundImage.empty() 
+        ? (stageName + ".png") 
+        : stageInfo->backgroundImage;
     SDL_Surface *bgSurface = IMG_Load((backgroundsPath + backgroundFilename).c_str());
     if (bgSurface)
     {
@@ -662,7 +665,9 @@ void Game::loadAssets()
         const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
         musicManager.loadTrack(bossMusicPath);
     }
-    else if (!stageInfo->backgroundMusic.empty())
+    
+    // Play background music (even for boss stages before boss intro)
+    if (!stageInfo->backgroundMusic.empty())
     {
         const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
         

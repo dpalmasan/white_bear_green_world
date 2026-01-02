@@ -17,6 +17,9 @@ struct StageInfo
     std::string mapFile    = "map.json";
     std::string spriteFile = "spritesheet.png";
 
+    // Visuals
+    std::string backgroundImage;   // Background PNG filename (defaults to name.png if empty)
+
     // Music
     std::string backgroundMusic;   // Path relative to assets/ (e.g., music/snowy_cliffs.ogg)
     std::string bossMusic;         // Boss theme (if boss level)
@@ -33,6 +36,7 @@ namespace StageNames
     inline constexpr const char* SnowyCliffs     = "snowy-cliffs";
     inline constexpr const char* SnowyCliffsBoss = "snowy-cliffs-boss";
     inline constexpr const char* WindPeaks       = "wind-peaks";
+    inline constexpr const char* WindPeaksCaveBoss = "wind-peaks-cave-boss";
     inline constexpr const char* DevStage        = "dev_stage";
 }
 

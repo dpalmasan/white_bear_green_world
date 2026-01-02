@@ -12,6 +12,7 @@ const StageInfo kSnowyCliffs{
     "levels/snowy-cliffs",
     "map.json",
     "spritesheet.png",
+    "",                        // backgroundImage (defaults to snowy-cliffs.png)
     "music/snowy_cliffs.ogg",  // backgroundMusic
     "",                        // bossMusic
     "",                       // endSceneTexture (asset removed in cleaned layout)
@@ -24,6 +25,7 @@ const StageInfo kSnowyCliffsBoss{
     "levels/snowy-cliffs-boss",
     "map.json",
     "spritesheet.png",
+    "",                       // backgroundImage (defaults to snowy-cliffs-boss.png)
     "",                       // backgroundMusic (handled by boss theme)
     "music/boss_theme.ogg",   // bossMusic
     "",                       // endSceneTexture
@@ -36,6 +38,7 @@ const StageInfo kWindPeaks{
     "levels/wind-peaks",
     "map.json",
     "spritesheet.png",
+    "",                       // backgroundImage (defaults to wind-peaks.png)
     "music/wind_peaks.ogg",
     "",                       // bossMusic
     "",                       // endSceneTexture
@@ -43,11 +46,25 @@ const StageInfo kWindPeaks{
     false                      // isBoss
 };
 
+const StageInfo kWindPeaksCaveBoss{
+    StageNames::WindPeaksCaveBoss,
+    "levels/wind-peaks-cave-boss",
+    "map.json",
+    "spritesheet.png",
+    "wind-peaks-cave.png",    // backgroundImage (use cave background)
+    "music/wind_peaks_cave.ogg",   // backgroundMusic (plays until boss intro)
+    "music/wind_peaks_cave.ogg",   // bossMusic (same track continues)
+    "",                       // endSceneTexture
+    "",                       // endSceneMusic
+    true                       // isBoss
+};
+
 const StageInfo kDevStage{
     StageNames::DevStage,
     StageNames::DevStage,
     "map.json",
     "spritesheet.png",
+    "",                       // backgroundImage (defaults to dev_stage.png)
     "music/snowy_cliffs.ogg", // reuse snowy cliffs music for dev stage
     "",                       // bossMusic
     "",                       // endSceneTexture
@@ -69,6 +86,8 @@ const StageInfo* StageRegistry::find(const std::string& name)
         return &kSnowyCliffsBoss;
     if (name == StageNames::WindPeaks)
         return &kWindPeaks;
+    if (name == StageNames::WindPeaksCaveBoss)
+        return &kWindPeaksCaveBoss;
     if (name == StageNames::DevStage)
         return &kDevStage;
     return nullptr;
