@@ -132,6 +132,11 @@ bool GameState::saveToFile(const std::string& filepath) const
             writeString(buffer, boss);
         }
         
+        // Write cutscene flags
+        uint8_t cutsceneFlags = 0;
+        if (rivalBearIntroCutsceneSeen) cutsceneFlags |= (1 << 0);
+        buffer.push_back(cutsceneFlags);
+        
         // Write collectibles per stage
         uint32_t stageCount = collectiblesPerStage.size();
         buffer.insert(buffer.end(), reinterpret_cast<uint8_t*>(&stageCount), 
@@ -291,6 +296,11 @@ bool GameState::loadFromFile(const std::string& filepath)
             if (boss.empty() && i < bossCount - 1) return false;
             bossesDefeated.insert(boss);
         }
+        
+        // Read cutscene flags
+        if (ptr + 1 > end) return false;
+        uint8_t cutsceneFlags = *ptr++;
+        rivalBearIntroCutsceneSeen = (cutsceneFlags & (1 << 0)) != 0;
         
         // Read collectibles per stage
         if (ptr + sizeof(uint32_t) > end) return false;

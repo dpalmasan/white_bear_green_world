@@ -6,20 +6,23 @@
 // input handling, game updates, and rendering.
 
 #include "Game.h"
-#include "core/Collision.h"
-#include "core/GameConstants.h"
-#include "entities/components/MovementComponent.h"
-#include "entities/components/WindArmorComponent.h"
-#include "entities/components/SwimmingComponent.h"
-#include "entities/components/ClimbingComponent.h"
 
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 
 #include <algorithm>
-#include <cmath>
 #include <cctype>
+#include <cmath>
 #include <iostream>
+
+#include "core/Collision.h"
+#include "core/GameConstants.h"
+#include "cutscenes/RivalBearIntroCutscene.h"
+#include "entities/RivalBear.h"
+#include "entities/components/ClimbingComponent.h"
+#include "entities/components/MovementComponent.h"
+#include "entities/components/SwimmingComponent.h"
+#include "entities/components/WindArmorComponent.h"
 
 // Initializes SDL, creates the window and renderer.
 // Returns true on success, false if any initialization step fails.
@@ -59,7 +62,8 @@ bool Game::init()
 
     // Set logical render size to base resolution
     // This allows the renderer to scale to any window size while maintaining aspect ratio
-    SDL_RenderSetLogicalSize(renderer, GameConstants::Display::LOGICAL_WIDTH, GameConstants::Display::LOGICAL_HEIGHT);
+    SDL_RenderSetLogicalSize(renderer, GameConstants::Display::LOGICAL_WIDTH,
+                             GameConstants::Display::LOGICAL_HEIGHT);
 
     // Initialize SDL_image for PNG loading support.
     if (!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG))
@@ -83,12 +87,12 @@ bool Game::init()
 // Loads all game assets (sprites, textures) and initializes the player and enemies.
 void Game::loadAssets()
 {
-    // Initialize GameState from command-line options (dev mode) - MUST happen before worldmap early return
-    // Parse --skills option
+    // Initialize GameState from command-line options (dev mode) - MUST happen before worldmap early
+    // return Parse --skills option
     if (!config.devSkills.empty())
     {
         std::string skillsList = config.devSkills;
-        size_t pos = 0;
+        size_t pos             = 0;
         while ((pos = skillsList.find(',')) != std::string::npos)
         {
             std::string skill = skillsList.substr(0, pos);
@@ -122,7 +126,7 @@ void Game::loadAssets()
     if (!config.devArmors.empty())
     {
         std::string armorsList = config.devArmors;
-        size_t pos = 0;
+        size_t pos             = 0;
         while ((pos = armorsList.find(',')) != std::string::npos)
         {
             std::string armor = armorsList.substr(0, pos);
@@ -146,12 +150,12 @@ void Game::loadAssets()
         else if (armorsList == "water")
             gameState.unlockWaterArmor();
     }
-    
+
     // Parse --bosses option (marks bosses as defeated for testing)
     if (!config.devBosses.empty())
     {
         std::string bossesList = config.devBosses;
-        size_t pos = 0;
+        size_t pos             = 0;
         while ((pos = bossesList.find(',')) != std::string::npos)
         {
             std::string bossName = bossesList.substr(0, pos);
@@ -160,7 +164,7 @@ void Game::loadAssets()
             if (colonPos != std::string::npos)
             {
                 std::string stage = bossName.substr(0, colonPos);
-                std::string boss = bossName.substr(colonPos + 1);
+                std::string boss  = bossName.substr(colonPos + 1);
                 gameState.markBossDefeated(stage, boss);
             }
             else
@@ -177,7 +181,7 @@ void Game::loadAssets()
             if (colonPos != std::string::npos)
             {
                 std::string stage = bossesList.substr(0, colonPos);
-                std::string boss = bossesList.substr(colonPos + 1);
+                std::string boss  = bossesList.substr(colonPos + 1);
                 gameState.markBossDefeated(stage, boss);
             }
             else
@@ -186,11 +190,11 @@ void Game::loadAssets()
             }
         }
     }
-    
+
     // Query the actual current window size (in case window was resized)
     int actualWindowWidth = 0, actualWindowHeight = 0;
     SDL_GetWindowSize(window, &actualWindowWidth, &actualWindowHeight);
-    
+
     // If starting on world map, load only world map assets and skip intro/title
     if (config.showWorldMap)
     {
@@ -205,18 +209,18 @@ void Game::loadAssets()
                       << "images/icons/map-cursor.png'\n";
         }
         worldMap.debug = config.worldMapDebug;
-        
+
         // Load and play map music
         const std::string mapMusicPath = config.assetPath + "music/map.ogg";
         if (musicManager.loadTrack(mapMusicPath))
         {
             musicManager.play(mapMusicPath, -1, MusicChannel::Menu);
         }
-        
+
         // Skip intro and title screen
         showIntroCutscene = false;
-        showTitleScreen = false;
-        
+        showTitleScreen   = false;
+
         // Camera view is already set in init; nothing else to load
         return;
     }
@@ -232,8 +236,9 @@ void Game::loadAssets()
     // Load title screen assets
     if (!titleScreen.load(renderer, config.assetPath))
     {
-        std::cerr << "Failed to load title screen assets (title-screen.png, title_screen.ogg) from '"
-                  << config.assetPath << "'\n";
+        std::cerr
+            << "Failed to load title screen assets (title-screen.png, title_screen.ogg) from '"
+            << config.assetPath << "'\n";
     }
 
     // Load save screen assets for loading from title screen
@@ -266,13 +271,13 @@ void Game::loadAssets()
         return;
     }
 
-    const std::string imagesPath       = config.assetPath + "images/";
-    const std::string polarPath        = imagesPath + "polar_bear/";
-    const std::string enemiesPath      = imagesPath + "enemies/";
-    const std::string bossImagesPath   = imagesPath + "bosses/";
-    const std::string attacksPath      = imagesPath + "attacks/";
-    const std::string backgroundsPath  = imagesPath + "backgrounds/";
-    const std::string iconsPath        = imagesPath + "icons/";
+    const std::string imagesPath      = config.assetPath + "images/";
+    const std::string polarPath       = imagesPath + "polar_bear/";
+    const std::string enemiesPath     = imagesPath + "enemies/";
+    const std::string bossImagesPath  = imagesPath + "bosses/";
+    const std::string attacksPath     = imagesPath + "attacks/";
+    const std::string backgroundsPath = imagesPath + "backgrounds/";
+    const std::string iconsPath       = imagesPath + "icons/";
 
     // Detect which enemies/bosses exist in the map so we only load the textures we need
     const auto enemySpawnTiles = map.getEnemySpawnTiles();
@@ -282,6 +287,7 @@ void Game::loadAssets()
     bool hasFrenzyWolfEnemy = false;
     bool hasArachnoidEnemy  = false;
     bool hasSnowRobotBoss   = false;
+    bool hasRivalBearBoss   = false;
 
     for (const auto* tile : enemySpawnTiles)
     {
@@ -297,6 +303,8 @@ void Game::loadAssets()
     {
         if (tile->boss == "snow-robot")
             hasSnowRobotBoss = true;
+        else if (tile->boss == "rival-bear")
+            hasRivalBearBoss = true;
     }
 
     // Load shared enemy/attack textures only when the map actually uses them
@@ -314,14 +322,12 @@ void Game::loadAssets()
 
     if (hasFrenzyWolfEnemy)
     {
-        frenzyWolfIdleTex = IMG_LoadTexture(renderer,
-                                           (enemiesPath + "frenzy_wolf/frenzy_wolf-idle.png")
-                                               .c_str());
+        frenzyWolfIdleTex =
+            IMG_LoadTexture(renderer, (enemiesPath + "frenzy_wolf/frenzy_wolf-idle.png").c_str());
         if (!frenzyWolfIdleTex)
             std::cerr << "Failed to load frenzy_wolf-idle.png: " << IMG_GetError() << "\n";
-        frenzyWolfRunTex = IMG_LoadTexture(renderer,
-                                          (enemiesPath + "frenzy_wolf/frenzy_wolf-attack.png")
-                                              .c_str());
+        frenzyWolfRunTex =
+            IMG_LoadTexture(renderer, (enemiesPath + "frenzy_wolf/frenzy_wolf-attack.png").c_str());
         if (!frenzyWolfRunTex)
             std::cerr << "Failed to load frenzy_wolf-attack.png: " << IMG_GetError() << "\n";
     }
@@ -340,8 +346,7 @@ void Game::loadAssets()
         bossSnowRobotTex =
             IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-deactivated.png").c_str());
         if (!bossSnowRobotTex)
-            std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError()
-                      << "\n";
+            std::cerr << "Failed to load boss-robot-deactivated.png: " << IMG_GetError() << "\n";
         bossRobotAttackTex =
             IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-attack.png").c_str());
         if (!bossRobotAttackTex)
@@ -353,8 +358,12 @@ void Game::loadAssets()
         bossRobotVulnerableTex =
             IMG_LoadTexture(renderer, (snowBossPath + "boss-robot-vulnerable.png").c_str());
         if (!bossRobotVulnerableTex)
-            std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError()
-                      << "\n";
+            std::cerr << "Failed to load boss-robot-vulnerable.png: " << IMG_GetError() << "\n";
+    }
+
+    if (hasRivalBearBoss)
+    {
+        // Rival bear boss textures loaded when boss is spawned (not preloaded globally)
     }
 
     // Load sound effects
@@ -364,18 +373,21 @@ void Game::loadAssets()
     explosionSound = Mix_LoadWAV((config.assetPath + "sfx/explosion.wav").c_str());
     if (!explosionSound)
         std::cerr << "Failed to load explosion.wav: " << Mix_GetError() << "\n";
+    bearGrowlSound = Mix_LoadWAV((config.assetPath + "sfx/bear-growl.wav").c_str());
+    if (!bearGrowlSound)
+        std::cerr << "Failed to load bear-growl.wav: " << Mix_GetError() << "\n";
 
     // Reset renderer to game mode (undo world map scaling)
     // Use the already-queried actual current window size
-    
+
     // Set logical size to window size and camera to window size
     SDL_RenderSetLogicalSize(renderer, actualWindowWidth, actualWindowHeight);
-    
+
     // Scale factor to make 320x240 content fill the window
     float scaleX = static_cast<float>(actualWindowWidth) / GameConstants::Display::LOGICAL_WIDTH;
     float scaleY = static_cast<float>(actualWindowHeight) / GameConstants::Display::LOGICAL_HEIGHT;
     SDL_RenderSetScale(renderer, scaleX, scaleY);
-    
+
     // Camera is window size (sees 320x240 worth of world but at window resolution)
     camera.width  = static_cast<int>(GameConstants::Display::LOGICAL_WIDTH / config.cameraZoom);
     camera.height = static_cast<int>(GameConstants::Display::LOGICAL_HEIGHT / config.cameraZoom);
@@ -417,7 +429,7 @@ void Game::loadAssets()
 
     // Sync polar bear abilities from GameState after parsing dev options
     polarBear.canClimb = gameState.hasClimb();
-    
+
     // Load climb texture if climb is unlocked
     if (polarBear.canClimb && !polarBear.climbTexture)
     {
@@ -429,7 +441,7 @@ void Game::loadAssets()
     polarBear.y        = 50;
     polarBear.onGround = false;
 
-    if (const Tile *spawn = map.getPolarBearSpawnTile())
+    if (const Tile* spawn = map.getPolarBearSpawnTile())
     {
         polarBear.x        = spawn->x * map.tileSize;
         polarBear.y        = spawn->y * map.tileSize - polarBear.spriteHeight;
@@ -441,16 +453,17 @@ void Game::loadAssets()
         auto bossTiles = map.getBossTiles();
         if (!bossTiles.empty())
         {
-            const Tile *bt = bossTiles.front();
-            
-            // Check if this boss has already been defeated (generic check using boss name from tile)
+            const Tile* bt = bossTiles.front();
+
+            // Check if this boss has already been defeated (generic check using boss name from
+            // tile)
             bool alreadyDefeated = gameState.isBossDefeated(stageName, bt->boss);
-            
+
             // Only spawn boss if not already defeated
             if (!alreadyDefeated)
             {
-                float spawnX   = bt->x * map.tileSize;
-                float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
+                float spawnX = bt->x * map.tileSize;
+                float spawnY = bt->y * map.tileSize - 48;  // account for render offset
 
                 // Instantiate boss based on type
                 if (bt->boss == "snow-robot")
@@ -468,7 +481,7 @@ void Game::loadAssets()
 
     // Load HUD heart texture (single-frame). We'll darken it for empty hearts.
     {
-        SDL_Surface *hbSurf = IMG_Load((iconsPath + "health_bar.png").c_str());
+        SDL_Surface* hbSurf = IMG_Load((iconsPath + "health_bar.png").c_str());
         if (hbSurf)
         {
             heartTexture = SDL_CreateTextureFromSurface(renderer, hbSurf);
@@ -496,10 +509,9 @@ void Game::loadAssets()
 
     // Load background texture for the level (stage-specific)
     // Use custom backgroundImage from StageInfo if specified, otherwise default to stageName.png
-    std::string backgroundFilename = stageInfo->backgroundImage.empty() 
-        ? (stageName + ".png") 
-        : stageInfo->backgroundImage;
-    SDL_Surface *bgSurface = IMG_Load((backgroundsPath + backgroundFilename).c_str());
+    std::string backgroundFilename =
+        stageInfo->backgroundImage.empty() ? (stageName + ".png") : stageInfo->backgroundImage;
+    SDL_Surface* bgSurface = IMG_Load((backgroundsPath + backgroundFilename).c_str());
     if (bgSurface)
     {
         backgroundTexture = SDL_CreateTextureFromSurface(renderer, bgSurface);
@@ -518,7 +530,7 @@ void Game::loadAssets()
     menu.loadAssets(renderer, config.assetPath);
 
     // Spawn enemies from map tiles marked with "enemy" attribute
-    for (const auto *tile : enemySpawnTiles)
+    for (const auto* tile : enemySpawnTiles)
     {
         // Convert tile coordinates to world coordinates
         float worldX      = tile->x * map.tileSize;
@@ -593,37 +605,119 @@ void Game::loadAssets()
 
     // Cache boss spawn location and instantiate boss
     {
+        std::cerr << "[DEBUG] bossSpawnTiles.size() = " << bossSpawnTiles.size() << "\n";
         if (!bossSpawnTiles.empty())
         {
-            const Tile *bt = bossSpawnTiles.front();
-            
-            // Check if this boss has already been defeated (generic check using boss name from tile)
+            const Tile* bt = bossSpawnTiles.front();
+
+            std::cerr << "[DEBUG] Boss tile found: boss=" << bt->boss << " at (" << bt->x << ", "
+                      << bt->y << ")\n";
+
+            // Check if this boss has already been defeated (generic check using boss name from
+            // tile)
             bool alreadyDefeated = gameState.isBossDefeated(stageName, bt->boss);
-            
+
+            std::cerr << "[DEBUG] alreadyDefeated = " << alreadyDefeated << "\n";
+
             // Only spawn boss if not already defeated
             if (!alreadyDefeated)
             {
-                float spawnX   = bt->x * map.tileSize;
-                float spawnY   = bt->y * map.tileSize - 48;  // account for render offset
+                float spawnX = bt->x * map.tileSize;
+                float spawnY = bt->y * map.tileSize;  // Base position at tile top
 
                 // Instantiate boss based on type
                 if (bt->boss == "snow-robot")
                 {
+                    spawnY -= 48;  // Snow robot offset
                     boss = std::make_unique<SnowRobotBoss>();
                     boss->loadAssets(renderer, config.assetPath);
                     boss->setPosition(spawnX, spawnY);
                     bossHasSpawn = true;
+                }
+                else if (bt->boss == "rival-bear")
+                {
+                    // Rival bear spawns standing on the floor tile
+                    // Floor tile is at y+1, we place boss so its bottom touches floor top
+                    int floorTileY = bt->y + 1;
+                    spawnY         = floorTileY * map.tileSize - 33;  // 33 is walk height
+
+                    auto rivalBear = std::make_unique<RivalBear>();
+
+                    // Find the event robot position (target for jump)
+                    float robotX          = 800.0f;  // Default
+                    const auto eventTiles = map.getEventTiles();
+                    for (const auto* eventTile : eventTiles)
+                    {
+                        if (eventTile->event == "robot")
+                        {
+                            robotX = eventTile->x * map.tileSize;
+                            std::cerr << "[Boss] Found event robot at x=" << robotX << "\n";
+                            break;
+                        }
+                    }
+                    // Bear lands further left for better positioning
+                    rivalBear->setTargetPosition(160.0f);
+
+                    // Load rival bear textures
+                    const std::string rivalPath = bossImagesPath + "rival-bear/";
+                    rivalBear->loadWalkTexture(renderer, rivalPath + "rival-bear-walk.png");
+                    rivalBear->loadJumpTexture(renderer, rivalPath + "rival-bear-jump.png");
+                    rivalBear->loadAttackTexture(renderer, rivalPath + "rival-bear-attack.png");
+                    rivalBear->loadSlashTexture(renderer, attacksPath + "slash.png");
+
+                    // Load sound effects
+                    rivalBear->setSlashSound(slashSound);
+                    rivalBear->setGrowlSound(bearGrowlSound);
+
+                    // Boss faces RIGHT to walk towards robot at x=800
+                    rivalBear->setFacingRight(true);
+
+                    boss = std::move(rivalBear);
+                    boss->setPosition(spawnX, spawnY);
+                    // Boss AI starts when camera panning finishes (step 2)
+                    bossHasSpawn = true;
+                    bossAlive =
+                        true;  // Rival bear activates immediately (no distance trigger needed)
+
+                    std::cerr << "[SPAWN] Boss spawned, bossHasSpawn=" << bossHasSpawn
+                              << " position=(" << boss->getX() << ", " << boss->getY() << ")\n";
                 }
                 // Add more boss types here as they're implemented
                 // else if (bt->boss == "fire-dragon") { ... }
             }
         }
     }
+
+    // Spawn event objects (non-interactive entities like idle robots for cutscenes)
+    {
+        const auto eventTiles = map.getEventTiles();
+        for (const auto* tile : eventTiles)
+        {
+            float worldX = tile->x * map.tileSize;
+            float worldY = tile->y * map.tileSize;
+
+            if (tile->event == "robot")
+            {
+                // Spawn an idle robot that doesn't attack
+                // Use robot's actual sprite dimensions (24x46)
+                auto idleRobot = std::make_unique<IdleEnemy>(GameConstants::Enemies::Robot::WIDTH,
+                                                             GameConstants::Enemies::Robot::HEIGHT);
+                idleRobot->x   = worldX;
+                idleRobot->y   = worldY - idleRobot->height;  // Position so robot stands on tile
+
+                // Load robot idle texture
+                idleRobot->loadTexture(renderer, enemiesPath + "robot/robot-idle.png");
+
+                enemies.push_back(std::move(idleRobot));
+            }
+        }
+    }
+
     // Cache end-of-area triggers as rectangles
     {
         endAreas.clear();
         auto endTiles = map.getEndOfAreaTiles();
-        for (const auto *tile : endTiles)
+        for (const auto* tile : endTiles)
         {
             SDL_Rect r{tile->x * map.tileSize, tile->y * map.tileSize, map.tileSize, map.tileSize};
             endAreas.push_back(r);
@@ -635,7 +729,7 @@ void Game::loadAssets()
     // Load optional end scene assets
     if (!stageInfo->endSceneTexture.empty())
     {
-        SDL_Surface *endSurf = IMG_Load((config.assetPath + stageInfo->endSceneTexture).c_str());
+        SDL_Surface* endSurf = IMG_Load((config.assetPath + stageInfo->endSceneTexture).c_str());
         if (endSurf)
         {
             endSceneTexture = SDL_CreateTextureFromSurface(renderer, endSurf);
@@ -647,7 +741,8 @@ void Game::loadAssets()
         }
         else
         {
-            std::cerr << "Failed to load " << stageInfo->endSceneTexture << ": " << IMG_GetError() << "\n";
+            std::cerr << "Failed to load " << stageInfo->endSceneTexture << ": " << IMG_GetError()
+                      << "\n";
         }
 
         if (!stageInfo->endSceneMusic.empty())
@@ -665,21 +760,38 @@ void Game::loadAssets()
         const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
         musicManager.loadTrack(bossMusicPath);
     }
-    
+
     // Play background music (even for boss stages before boss intro)
     if (!stageInfo->backgroundMusic.empty())
     {
         const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
-        
+
         if (musicManager.loadTrack(musicPath))
         {
-            // Only autoplay if NOT showing intro/title (e.g., direct stage load or world map transition)
+            // Only autoplay if NOT showing intro/title (e.g., direct stage load or world map
+            // transition)
             if (!showIntroCutscene && !showTitleScreen)
             {
                 musicManager.play(musicPath, -1, MusicChannel::Background);
             }
         }
     }
+
+    // Register cutscenes for this stage
+    registerCutscenes();
+}
+
+void Game::registerCutscenes()
+{
+    // Register cutscene factories for this stage
+    cutsceneManager_.registerCutscene(
+        "rival-bear-intro1",
+        [this]() { return std::make_unique<RivalBearIntroCutscene>(boss.get()); });
+
+    // Register more cutscenes here as needed
+    // cutsceneManager_.registerCutscene("other-cutscene", [this]() {
+    //     return std::make_unique<OtherCutscene>(...);
+    // });
 }
 
 // Processes keyboard input and updates player control state.
@@ -687,7 +799,7 @@ void Game::handleInput()
 {
     // Set world map mode for input manager
     input.setWorldMapActive(config.showWorldMap);
-    
+
     // Handle world map navigation first (before Input consumes events)
     if (config.showWorldMap)
     {
@@ -703,7 +815,7 @@ void Game::handleInput()
                 SDL_GetWindowSize(window, &windowWidth, &windowHeight);
                 SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
             }
-            
+
             // Handle Tab/Escape for save screen
             if (e.type == SDL_KEYDOWN)
             {
@@ -736,7 +848,7 @@ void Game::handleInput()
                     if (worldMap.currentIndex >= 0 &&
                         worldMap.currentIndex < (int)worldMap.locations.size())
                     {
-                        const auto &loc = worldMap.locations[worldMap.currentIndex];
+                        const auto& loc = worldMap.locations[worldMap.currentIndex];
                         if (loc.name == "Snowy Cliffs" || loc.name == "Wind Peaks")
                         {
                             // Begin fade-out transition; actual load happens after fade completes
@@ -747,36 +859,36 @@ void Game::handleInput()
                     }
                 }
             }
-            
+
             // Only pass navigation events to worldMap when save screen is closed
             if (!worldMap.saveScreenOpen)
             {
                 worldMap.handleEvent(e);
             }
         }
-        
+
         return;
     }
-    
+
     // Handle intro cutscene input (skip on 'j' if skippable)
     if (showIntroCutscene)
     {
         input.handleEvents(running);
-        
+
         // Skip cutscene if it's skippable and 'j' key pressed
         if (introCutscene.canBeSkipped() && input.isJumping())
         {
             showIntroCutscene = false;
-            showTitleScreen = true;
+            showTitleScreen   = true;
             introCutscene.reset();
-            introCutscene.clean();  // Free intro cutscene assets to save memory
+            introCutscene.clean();      // Free intro cutscene assets to save memory
             titleScreen.resetFadeIn();  // Start fade-in from black
         }
-        
+
         input.resetFrameEvents();
         return;
     }
-    
+
     // Handle title screen input
     if (showTitleScreen)
     {
@@ -794,15 +906,15 @@ void Game::handleInput()
             }
             titleScreen.handleInput(e);
         }
-        
+
         // If user confirmed start, check which option was selected
         if (titleScreen.shouldStartGame() && !titleFadingOut && !titleFadingIn)
         {
             if (titleScreen.shouldContinue())
             {
                 // Continue selected - show load screen
-                showLoadScreen = true;
-                showTitleScreen = false;
+                showLoadScreen       = true;
+                showTitleScreen      = false;
                 loadScreenFirstFrame = true;  // Skip input on first frame
                 // Reset input to prevent J key from carrying over to load screen
                 input.resetFrameEvents();
@@ -810,8 +922,8 @@ void Game::handleInput()
             else
             {
                 // New Game selected - start fade-out to new game
-                titleFadingOut  = true;
-                titleFadeTimer  = 0.0f;
+                titleFadingOut = true;
+                titleFadeTimer = 0.0f;
                 // Stop any playing title music
                 musicManager.stop();
             }
@@ -820,7 +932,8 @@ void Game::handleInput()
         // Advance title fade-out
         if (titleFadingOut)
         {
-            titleFadeTimer += (1.0f / 60.0f);  // progress roughly per frame; precise dt is in update
+            titleFadeTimer +=
+                (1.0f / 60.0f);  // progress roughly per frame; precise dt is in update
             if (titleFadeTimer >= titleFadeDuration)
             {
                 // Transition: leave title, load default stage, then fade in
@@ -840,15 +953,15 @@ void Game::handleInput()
                 loadAssets();
 
                 // Switch fades
-                titleFadingOut  = false;
-                titleFadingIn   = true;
-                titleFadeTimer  = 0.0f;
+                titleFadingOut = false;
+                titleFadingIn  = true;
+                titleFadeTimer = 0.0f;
             }
         }
 
         return;
     }
-    
+
     // Handle load screen input (when Continue selected from title)
     if (showLoadScreen)
     {
@@ -860,7 +973,7 @@ void Game::handleInput()
                 running = false;
             }
         }
-        
+
         // Skip input processing on first frame to prevent key bleed-through
         if (loadScreenFirstFrame)
         {
@@ -869,53 +982,60 @@ void Game::handleInput()
             input.resetFrameEvents();
             return;
         }
-        
+
         // Process input for load screen
         input.handleEvents(running);
         bool shouldClose = loadScreen.handleInput(input);
-        
+
         if (shouldClose)
         {
             if (loadScreen.shouldLoadGame())
             {
                 // User selected a save slot to load - load the game state
                 gameState = loadScreen.getSelectedSlotState();
-                
+
                 // Apply loaded state to the polar bear (only canClimb is stored in PolarBear)
                 polarBear.canClimb = gameState.hasClimb();
-                
+
                 // Transition to world map to select stage
-                showLoadScreen = false;
+                showLoadScreen      = false;
                 config.showWorldMap = true;
-                
+
                 // Stop title music
                 musicManager.stop();
-                
+
                 // Clear title screen
                 titleScreen.reset();
                 titleScreen.clean();
-                
+
                 // Load world map
                 loadAssets();
             }
             else
             {
                 // User cancelled (ESC/Tab) - return to title screen
-                showLoadScreen = false;
+                showLoadScreen  = false;
                 showTitleScreen = true;
                 titleScreen.reset();
             }
         }
-        
+
         input.resetFrameEvents();
         return;
     }
     // Handle all SDL events and keyboard state
     input.handleEvents(running);
 
+    // Disable all input during cutscene (including menu)
+    if (cutsceneManager_.isActive())
+    {
+        input.resetFrameEvents();
+        return;
+    }
+
     // Handle menu input first - returns true if menu consumed the input
-    if (menu.handleInput(input, polarBear, gameState, paused, 
-                         config.musicVolume, config.pauseMusicVolume, endingStage))
+    if (menu.handleInput(input, polarBear, gameState, paused, config.musicVolume,
+                         config.pauseMusicVolume, endingStage))
     {
         // Menu is open and consumed the input - don't process game inputs
         input.resetFrameEvents();
@@ -1017,7 +1137,7 @@ void Game::handleInput()
     }
 
     // Water detection with hysteresis: require 4/5 samples to enter, 3/5 to stay
-    int waterSamples  = polarBear.waterCoverageCount(map);
+    int waterSamples = polarBear.waterCoverageCount(map);
     bool bearInWater = waterSamples >= (polarBear.isSwimming() ? 3 : 4);
     polarBear.setSwimmingState(bearInWater, input.isJumpHeld());
 
@@ -1030,7 +1150,7 @@ void Game::handleInput()
             if (polarBear.isWindEquipped() && polarBear.inWind)
             {
                 // Wind jump from wind tile: 25% higher than normal jump (rounded to avoid jitter)
-                polarBear.vy = std::round(-318.0f * 1.25f);
+                polarBear.vy       = std::round(-318.0f * 1.25f);
                 polarBear.onGround = false;
             }
             else if (polarBear.onGround)
@@ -1067,7 +1187,6 @@ void Game::handleInput()
     input.resetFrameEvents();
 }
 
-
 // Updates game state: player physics, enemy behavior, collisions, and effects.
 void Game::update(float dt)
 {
@@ -1076,9 +1195,9 @@ void Game::update(float dt)
     SDL_GetWindowSize(window, &currentWindowWidth, &currentWindowHeight);
     if (currentWindowWidth != windowWidth || currentWindowHeight != windowHeight)
     {
-        windowWidth = currentWindowWidth;
+        windowWidth  = currentWindowWidth;
         windowHeight = currentWindowHeight;
-        
+
         if (config.showWorldMap)
         {
             // World map: set logical size to match window
@@ -1089,15 +1208,18 @@ void Game::update(float dt)
             // Stage gameplay: update logical size and scale to fill window
             SDL_RenderSetLogicalSize(renderer, windowWidth, windowHeight);
             float scaleX = static_cast<float>(windowWidth) / GameConstants::Display::LOGICAL_WIDTH;
-            float scaleY = static_cast<float>(windowHeight) / GameConstants::Display::LOGICAL_HEIGHT;
+            float scaleY =
+                static_cast<float>(windowHeight) / GameConstants::Display::LOGICAL_HEIGHT;
             SDL_RenderSetScale(renderer, scaleX, scaleY);
-            
+
             // Camera still sees 320x240 worth of world
-            camera.width  = static_cast<int>(GameConstants::Display::LOGICAL_WIDTH / config.cameraZoom);
-            camera.height = static_cast<int>(GameConstants::Display::LOGICAL_HEIGHT / config.cameraZoom);
+            camera.width =
+                static_cast<int>(GameConstants::Display::LOGICAL_WIDTH / config.cameraZoom);
+            camera.height =
+                static_cast<int>(GameConstants::Display::LOGICAL_HEIGHT / config.cameraZoom);
         }
     }
-    
+
     // Update intro cutscene
     if (showIntroCutscene)
     {
@@ -1107,7 +1229,7 @@ void Game::update(float dt)
             showIntroCutscene = false;
             introCutscene.clean();  // Free intro cutscene assets to save memory
             inCutsceneToTitleFade = true;
-            fadeToBlackTimer = 0.0f;
+            fadeToBlackTimer      = 0.0f;
         }
         return;
     }
@@ -1119,7 +1241,7 @@ void Game::update(float dt)
         if (fadeToBlackTimer >= fadeToBlackDuration)
         {
             inCutsceneToTitleFade = false;
-            showTitleScreen = true;
+            showTitleScreen       = true;
             titleScreen.resetFadeIn();  // Start fade-in from black
         }
         return;
@@ -1144,15 +1266,15 @@ void Game::update(float dt)
                 // Execute transition: leave map, load stage, start fade-in
                 worldMap.clean();
                 config.showWorldMap = false;
-                
+
                 // Determine stage name based on selected world map location
-                const auto &selectedLoc = worldMap.locations[worldMap.currentIndex];
+                const auto& selectedLoc = worldMap.locations[worldMap.currentIndex];
                 if (selectedLoc.name == "Snowy Cliffs")
                     stageName = StageNames::SnowyCliffs;
                 else if (selectedLoc.name == "Wind Peaks")
                     stageName = StageNames::WindPeaks;
                 else
-                    stageName = StageNames::SnowyCliffs; // default fallback
+                    stageName = StageNames::SnowyCliffs;  // default fallback
 
                 // Stop map music
                 musicManager.stop();
@@ -1186,37 +1308,37 @@ void Game::update(float dt)
         {
             // Fade-out complete: stop music, clear state, load new stage
             musicManager.stop();
-            
+
             enemies.clear();
             fireballs.clear();
             explosions.clear();
             powerUps.clear();
             endAreas.clear();
-            
+
             stageName = nextStageName;
             // If we are exiting to the world map, flip the flag before loading assets
             if (transitioningToMap)
                 config.showWorldMap = true;
             loadAssets();
-            
+
             if (config.showWorldMap && transitioningToMap)
             {
                 // Entering world map: use world-map fade-in instead of stage fade-in
-                stageFadingOut          = false;
-                stageFadingIn           = false;
-                stageFadeTimer          = 0.0f;
-                wmFadingIn              = true;
-                wmFadeTimer             = 0.0f;
-                transitioningToMap      = false;
-                returnToMapAfterPickup  = false;
+                stageFadingOut         = false;
+                stageFadingIn          = false;
+                stageFadeTimer         = 0.0f;
+                wmFadingIn             = true;
+                wmFadeTimer            = 0.0f;
+                transitioningToMap     = false;
+                returnToMapAfterPickup = false;
                 // Camera position irrelevant for world map; keep as-is
             }
             else
             {
                 // Position camera on player immediately after loading new stage
                 camera.follow(polarBear.x + polarBear.spriteWidth / 2.0f,
-                             polarBear.y + polarBear.spriteHeight / 2.0f);
-                
+                              polarBear.y + polarBear.spriteHeight / 2.0f);
+
                 // Switch to fade-in
                 stageFadingOut = false;
                 stageFadingIn  = true;
@@ -1251,7 +1373,7 @@ void Game::update(float dt)
                 if (pickupMusicTimer >= pickupMusicDelay)
                 {
                     // Play pickup music after delay
-                    pickupMusicStarted = true;
+                    pickupMusicStarted            = true;
                     const std::string powerUpPath = config.assetPath + "music/power_up.ogg";
                     if (musicManager.loadTrack(powerUpPath))
                     {
@@ -1289,7 +1411,8 @@ void Game::update(float dt)
                             const StageInfo* stageInfo = StageRegistry::find(stageName);
                             if (stageInfo && !stageInfo->backgroundMusic.empty())
                             {
-                                const std::string musicPath = config.assetPath + stageInfo->backgroundMusic;
+                                const std::string musicPath =
+                                    config.assetPath + stageInfo->backgroundMusic;
                                 if (musicManager.loadTrack(musicPath))
                                 {
                                     musicManager.play(musicPath, -1, MusicChannel::Background);
@@ -1345,11 +1468,96 @@ void Game::update(float dt)
     // Update player only if not in boss intro; keep updating during death to let animations finish
     bool bossFreezePlayer = boss && boss->isIntroActive();
 
+    // Check for cutscene triggers
+    if (!cutsceneManager_.isActive())
+    {
+        for (const auto& layer : map.layers)
+        {
+            for (const auto& tile : layer.tiles)
+            {
+                if (!tile.cutscene.empty())
+                {
+                    // Check if cutscene has already been seen
+                    if (tile.cutscene == "rival-bear-intro1" &&
+                        gameState.rivalBearIntroCutsceneSeen)
+                    {
+                        continue;  // Skip this cutscene
+                    }
+
+                    // Get tile world position
+                    float tileX = tile.x * map.tileSize;
+
+                    // Trigger when bear crosses the tile's x position (with small tolerance)
+                    float tolerance = 2.0f;
+                    if (std::abs(polarBear.x - tileX) < tolerance)
+                    {
+                        std::cerr << "[Cutscene] Triggered at bearX=" << polarBear.x
+                                  << " tileX=" << tileX << "\n";
+                        polarBear.vx         = 0.0f;
+                        polarBear.moveIntent = 0.0f;
+                        musicManager.stop();
+                        cutsceneManager_.trigger(tile.cutscene);
+
+                        // Set player target for camera return
+                        if (auto* cutscene =
+                                dynamic_cast<RivalBearIntroCutscene*>(cutsceneManager_.getActive()))
+                        {
+                            // Store player center coordinates (camera.follow() will center on these)
+                            float playerCenterX = polarBear.x + polarBear.spriteWidth / 2.0f;
+                            float playerCenterY = polarBear.y + polarBear.spriteHeight / 2.0f;
+                            cutscene->setPlayerTarget(playerCenterX, playerCenterY);
+                        }
+                        break;
+                    }
+                }
+            }
+            if (cutsceneManager_.isActive())
+                break;
+        }
+    }
+
     // If boss disables inputs, clear movement intent but keep updating for animation completion
     if (boss && boss->shouldDisableInputs())
     {
         polarBear.moveIntent = 0.0f;
         polarBear.vx         = 0.0f;
+    }
+
+    // During cutscene, disable input handling
+    if (cutsceneManager_.isActive())
+    {
+        polarBear.moveIntent  = 0.0f;
+        polarBear.climbIntent = 0.0f;
+        polarBear.vx          = 0.0f;
+    }
+
+    // Update cutscene system (handles camera control during cutscene)
+    cutsceneManager_.update(dt, camera, map);
+
+    // Handle cutscene completion
+    if (!cutsceneManager_.isActive())
+    {
+        RivalBear* rivalBear = dynamic_cast<RivalBear*>(boss.get());
+        if (rivalBear && rivalBear->isCutsceneComplete() && !gameState.rivalBearIntroCutsceneSeen)
+        {
+            // Cutscene just completed - start music and mark as seen
+            gameState.rivalBearIntroCutsceneSeen = true;
+            cutsceneManager_.hideLetterbox();
+
+            // Start boss fight music
+            const std::string musicPath = config.assetPath + "music/rival_bear_fight1.ogg";
+            if (musicManager.loadTrack(musicPath))
+            {
+                if (musicManager.play(musicPath, -1, MusicChannel::Boss))
+                {
+                    bossMusicStarted = true;
+                    std::cerr << "[Boss] Starting rival_bear_fight1 music\n";
+                }
+            }
+
+            rivalBear->markIntroDone();
+            std::cerr << "[Game] Rival bear cutscene complete\n";
+        }
     }
 
     if (!bossFreezePlayer)
@@ -1358,86 +1566,129 @@ void Game::update(float dt)
     }
 
     // Update camera: handle transition, lock, or follow player
-    if (cameraTransitioning)
+    // Skip camera updates during cutscene (cutscene manager controls camera)
+    if (!cutsceneManager_.isActive())
     {
-        // Move camera toward target at bear speed (75 px/s)
-        float speed = 75.0f;
-        float dx    = targetCamX - camera.x;
-        float dy    = targetCamY - camera.y;
-        float dist  = std::sqrt(dx * dx + dy * dy);
-
-        if (dist < speed * dt || dist < 5.0f)
+        if (cameraTransitioning)
         {
-            // Reached target - if boss intro pending, lock and start intro
-            if (boss && bossAlive && !boss->isIntroActive() && !boss->isIntroDone())
-            {
-                camera.x            = targetCamX;
-                camera.y            = targetCamY;
-                lockCamX            = targetCamX;
-                lockCamY            = targetCamY;
-                cameraTransitioning = false;
-                cameraLocked        = true;
+            // Move camera toward target at bear speed (75 px/s)
+            float speed = 75.0f;
+            float dx    = targetCamX - camera.x;
+            float dy    = targetCamY - camera.y;
+            float dist  = std::sqrt(dx * dx + dy * dy);
 
-                // Now start boss intro
-                boss->startIntro();
-                // Cancel any ongoing player attack and freeze motion intents
-                polarBear.currentAttack.reset();
-                polarBear.isAttacking = false;
-                polarBear.moveIntent  = 0.0f;
-                polarBear.vx          = 0.0f;
-                polarBear.vy          = 0.0f;
-                // Start boss music only if boss is still alive
-                if (bossAlive)
+            std::cerr << "[Camera] Transitioning: dist=" << dist << " dx=" << dx << " dy=" << dy
+                      << " postIntro=" << postIntroTransition << "\n";
+
+            if (dist < speed * dt || dist < 5.0f)
+            {
+                // Reached target
+                camera.x = targetCamX;
+                camera.y = targetCamY;
+
+                std::cerr << "[Camera] Reached target! postIntroTransition=" << postIntroTransition
+                          << "\n";
+
+                // Check what kind of transition this was
+                if (boss && bossAlive && !boss->isIntroActive() && !boss->isIntroDone())
                 {
-                    musicManager.stop();
-                    const StageInfo* stageInfo = StageRegistry::find(stageName);
-                    if (stageInfo && !stageInfo->bossMusic.empty())
+                    // Boss intro pending, lock and start intro
+                    lockCamX            = targetCamX;
+                    lockCamY            = targetCamY;
+                    cameraTransitioning = false;
+                    cameraLocked        = true;
+
+                    // Now start boss intro
+                    boss->startIntro();
+                    // Cancel any ongoing player attack and freeze motion intents
+                    polarBear.currentAttack.reset();
+                    polarBear.isAttacking = false;
+                    polarBear.moveIntent  = 0.0f;
+                    polarBear.vx          = 0.0f;
+                    polarBear.vy          = 0.0f;
+                    // Start boss music only if boss is still alive
+                    if (bossAlive)
                     {
-                        const std::string bossMusicPath = config.assetPath + stageInfo->bossMusic;
-                        if (musicManager.loadTrack(bossMusicPath))
+                        musicManager.stop();
+                        const StageInfo* stageInfo = StageRegistry::find(stageName);
+                        if (stageInfo && !stageInfo->bossMusic.empty())
                         {
-                            if (musicManager.play(bossMusicPath, 0, MusicChannel::Boss))
+                            const std::string bossMusicPath =
+                                config.assetPath + stageInfo->bossMusic;
+                            if (musicManager.loadTrack(bossMusicPath))
                             {
-                                bossMusicStarted = true;
-                                bossMusicLooped  = false;
+                                if (musicManager.play(bossMusicPath, 0, MusicChannel::Boss))
+                                {
+                                    bossMusicStarted = true;
+                                    bossMusicLooped  = false;
+                                }
                             }
                         }
                     }
                 }
-            }
-            else
-            {
-                // Transition complete
-                if (cameraUnlocking)
+                else if (cameraUnlocking)
                 {
                     // Unlock complete, resume normal follow and re-enable inputs
-                    cameraLocked    = false;
-                    cameraUnlocking = false;
+                    cameraLocked        = false;
+                    cameraUnlocking     = false;
+                    cameraTransitioning = false;
                     if (boss)
                         boss->enableInputs();
                 }
-                cameraTransitioning = false;
+                else if (postIntroTransition)
+                {
+                    // Post-intro transition complete, start music and mark intro done
+                    postIntroTransition = false;
+                    cameraTransitioning = false;
+                    cutsceneManager_.hideLetterbox();
+
+                    // Start boss fight music
+                    const std::string musicPath = config.assetPath + "music/rival_bear_fight1.ogg";
+                    if (musicManager.loadTrack(musicPath))
+                    {
+                        if (musicManager.play(musicPath, -1,
+                                              MusicChannel::Boss))  // -1 = loop forever
+                        {
+                            bossMusicStarted = true;
+                            std::cerr << "[Boss] Starting rival_bear_fight1 music\n";
+                        }
+                    }
+
+                    // Mark boss intro as complete
+                    RivalBear* rivalBear = dynamic_cast<RivalBear*>(boss.get());
+                    if (rivalBear)
+                    {
+                        rivalBear->markIntroDone();
+                    }
+
+                    std::cerr << "[Camera] Post-intro transition complete\n";
+                }
+                else
+                {
+                    // Generic transition complete
+                    cameraTransitioning = false;
+                }
             }
+            else
+            {
+                // Move toward target
+                float moveX = (dx / dist) * speed * dt;
+                float moveY = (dy / dist) * speed * dt;
+                camera.x += static_cast<int>(moveX);
+                camera.y += static_cast<int>(moveY);
+            }
+        }
+        else if (cameraLocked)
+        {
+            camera.x = lockCamX;
+            camera.y = lockCamY;
         }
         else
         {
-            // Move toward target
-            float moveX = (dx / dist) * speed * dt;
-            float moveY = (dy / dist) * speed * dt;
-            camera.x += static_cast<int>(moveX);
-            camera.y += static_cast<int>(moveY);
+            camera.follow(polarBear.x + polarBear.spriteWidth / 2.0f,
+                          polarBear.y + polarBear.spriteHeight / 2.0f);
         }
-    }
-    else if (cameraLocked)
-    {
-        camera.x = lockCamX;
-        camera.y = lockCamY;
-    }
-    else
-    {
-        camera.follow(polarBear.x + polarBear.spriteWidth / 2.0f,
-                      polarBear.y + polarBear.spriteHeight / 2.0f);
-    }
+    }  // end if (!inCutscene_)
 
     // Trigger boss intro when within 8 tiles of the boss
     if (boss && bossHasSpawn && !boss->isIntroActive() && !boss->isIntroDone() &&
@@ -1464,6 +1715,8 @@ void Game::update(float dt)
     if (boss && boss->isIntroActive())
     {
         boss->updateIntro(dt);
+        // Also update AI during intro for bosses that need it (e.g., RivalBear)
+        boss->updateAI(dt, map, polarBear);
     }
 
     // Boss AI: runs after intro completes (keep running during death states for fade effects)
@@ -1473,7 +1726,8 @@ void Game::update(float dt)
         boss->updateAI(dt, map, polarBear);
 
         // Spawn any projectiles created by the boss during updateAI
-        // Cast to SnowRobotBoss to access spawn methods (in future, could be virtual in Boss interface)
+        // Cast to SnowRobotBoss to access spawn methods (in future, could be virtual in Boss
+        // interface)
         if (dynamic_cast<SnowRobotBoss*>(boss.get()))
         {
             SnowRobotBoss* snowBoss = dynamic_cast<SnowRobotBoss*>(boss.get());
@@ -1571,20 +1825,21 @@ void Game::update(float dt)
     }
 
     // Update all active enemies.
-    for (auto &e : enemies)
+    for (auto& e : enemies)
     {
         if (!e || !e->alive)
             continue;
 
-        // Only update enemies that are in the camera viewport
-        if (!camera.isInViewport(e->x, e->y, e->width, e->height))
+        // Only update enemies that are in the camera viewport (skip culling during cutscenes for
+        // event objects)
+        if (!cutsceneManager_.isActive() && !camera.isInViewport(e->x, e->y, e->width, e->height))
             continue;
 
-        if (auto robo = dynamic_cast<RobotEnemy *>(e.get()))
+        if (auto robo = dynamic_cast<RobotEnemy*>(e.get()))
         {
             robo->tickAI(dt, map, polarBear, fireballs, roboFireballTexture);
         }
-        else if (auto wolf = dynamic_cast<FrenzyWolf *>(e.get()))
+        else if (auto wolf = dynamic_cast<FrenzyWolf*>(e.get()))
         {
             wolf->tickAI(dt, map, polarBear);
         }
@@ -1593,18 +1848,18 @@ void Game::update(float dt)
     }
 
     // Update explosion animations.
-    for (auto &ex : explosions)
+    for (auto& ex : explosions)
         ex.update(dt);
     // Remove finished explosions.
     explosions.erase(std::remove_if(explosions.begin(), explosions.end(),
-                                    [](const Explosion &e) { return e.done(); }),
+                                    [](const Explosion& e) { return e.done(); }),
                      explosions.end());
 
     // Slash collision detection: check if the slash hits any enemies.
     SDL_Rect slashRect;
     if (polarBear.getAttackWorldRect(slashRect))
     {
-        for (auto &e : enemies)
+        for (auto& e : enemies)
         {
             if (!e->alive)
                 continue;
@@ -1625,7 +1880,7 @@ void Game::update(float dt)
         }
         // Remove dead enemies from the active list.
         enemies.erase(std::remove_if(enemies.begin(), enemies.end(),
-                                     [](const std::unique_ptr<Enemy> &e) { return !e->alive; }),
+                                     [](const std::unique_ptr<Enemy>& e) { return !e->alive; }),
                       enemies.end());
 
         // Check slash collision with boss (regardless of vulnerability) - only once per slash
@@ -1642,8 +1897,9 @@ void Game::update(float dt)
                 bool wasVulnerable = boss->isVulnerable();
                 boss->takeDamage(1);
 
-                // Only create explosion if boss was vulnerable
-                if (wasVulnerable)
+                // Only create explosion if boss was vulnerable AND not a RivalBear
+                bool isRivalBear = (dynamic_cast<RivalBear*>(boss.get()) != nullptr);
+                if (wasVulnerable && !isRivalBear)
                 {
                     Explosion ex;
                     ex.x     = boss->getX() + 32.0f;
@@ -1662,6 +1918,40 @@ void Game::update(float dt)
                     polarBear.moveIntent  = 0.0f;
                     polarBear.vx          = 0.0f;
                     polarBear.vy          = 0.0f;
+                }
+            }
+        }
+    }
+
+    // Rival Bear slash collision: check if rival bear's slash hits the robot event object
+    if (auto* rivalBear = dynamic_cast<RivalBear*>(boss.get()))
+    {
+        SDL_Rect rivalSlashRect;
+        if (rivalBear->getSlashWorldRect(rivalSlashRect))
+        {
+            for (auto& e : enemies)
+            {
+                if (!e->alive)
+                    continue;
+
+                // Check if this is an IdleEnemy (event robot)
+                if (dynamic_cast<IdleEnemy*>(e.get()))
+                {
+                    SDL_Rect er      = e->getAABB();
+                    SDL_Rect erTight = Collision::shrinkRect(er, 0.10f);
+                    if (Collision::intersects(rivalSlashRect, erTight))
+                    {
+                        std::cerr << "[SLASH] Hit robot at (" << e->x << ", " << e->y << ")\n";
+                        // Hit detected: mark robot as dead and create explosion
+                        e->alive = false;
+                        Explosion ex;
+                        ex.x     = e->x + e->width / 2;
+                        ex.y     = e->y + e->height / 2;
+                        ex.timer = 0.0f;
+                        explosions.push_back(ex);
+                        if (explosionSound)
+                            Mix_PlayChannel(-1, explosionSound, 0);
+                    }
                 }
             }
         }
@@ -1687,7 +1977,7 @@ void Game::update(float dt)
     // End-of-area trigger collision: touching transitions to boss stage
     if (!endingStage && !stageFadingOut)
     {
-        for (const auto &r : endAreas)
+        for (const auto& r : endAreas)
         {
             if (Collision::intersects(bearTight, r))
             {
@@ -1700,16 +1990,29 @@ void Game::update(float dt)
             }
         }
     }
-    for (auto &e : enemies)
+    for (auto& e : enemies)
     {
         if (!e->alive)
             continue;
-          SDL_Rect er      = e->getAABB();
-          SDL_Rect erTight = Collision::shrinkRect(er, 0.10f);
-          if (Collision::intersects(bearTight, erTight))
+        SDL_Rect er      = e->getAABB();
+        SDL_Rect erTight = Collision::shrinkRect(er, 0.10f);
+        if (Collision::intersects(bearTight, erTight))
         {
             // Collision detected: damage the bear.
             polarBear.takeDamage(gameState);
+        }
+    }
+    
+    // Check rival bear slash collision with player
+    if (auto* rivalBear = dynamic_cast<RivalBear*>(boss.get()))
+    {
+        SDL_Rect rivalSlashRect;
+        if (rivalBear->getSlashWorldRect(rivalSlashRect))
+        {
+            if (Collision::intersects(bearTight, rivalSlashRect))
+            {
+                polarBear.takeDamage(gameState);
+            }
         }
     }
 
@@ -1717,13 +2020,13 @@ void Game::update(float dt)
     // Remove boss-origin fireballs once boss cannot damage the player
     if (boss && !boss->canDamagePlayer())
     {
-        for (auto &fbc : fireballs)
+        for (auto& fbc : fireballs)
         {
             if (fbc.fromBoss)
                 fbc.alive = false;
         }
     }
-    for (auto &fb : fireballs)
+    for (auto& fb : fireballs)
     {
         fb.update(dt, map);
         if (!fb.alive)
@@ -1741,11 +2044,11 @@ void Game::update(float dt)
         }
     }
     fireballs.erase(std::remove_if(fireballs.begin(), fireballs.end(),
-                                   [](const Fireball &f) { return !f.alive; }),
+                                   [](const Fireball& f) { return !f.alive; }),
                     fireballs.end());
 
     // Update power-up glow animation and handle collision (hearts)
-    for (auto &p : powerUps)
+    for (auto& p : powerUps)
     {
         if (!p.collected)
         {
@@ -1846,16 +2149,16 @@ void Game::render()
         SDL_RenderPresent(renderer);
         return;
     }
-    
+
     // Render load screen if active
     if (showLoadScreen)
     {
         // Use a temporary camera for rendering (same dimensions as game camera)
         Camera tempCamera;
-        tempCamera.width = windowWidth;
+        tempCamera.width  = windowWidth;
         tempCamera.height = windowHeight;
-        tempCamera.x = 0;
-        tempCamera.y = 0;
+        tempCamera.x      = 0;
+        tempCamera.y      = 0;
         loadScreen.render(renderer, tempCamera);
         SDL_RenderPresent(renderer);
         return;
@@ -1946,9 +2249,19 @@ void Game::render()
 
     // Render the attack effect during attacks.
     polarBear.renderAttack(renderer, camera.x, camera.y);
+    
+    // Render rival bear slash separately (after player, like player's attack)
+    if (boss && bossHasSpawn && !boss->isDead())
+    {
+        RivalBear* rivalBear = dynamic_cast<RivalBear*>(boss.get());
+        if (rivalBear)
+        {
+            rivalBear->renderSlash(renderer, camera);
+        }
+    }
 
     // Render all enemies.
-    for (auto &e : enemies)
+    for (auto& e : enemies)
         e->render(renderer, camera.x, camera.y);
 
     // Render boss death fade overlay (if active)
@@ -1961,7 +2274,7 @@ void Game::render()
     }
 
     // Render power-ups (only hearts for now)
-    for (auto &p : powerUps)
+    for (auto& p : powerUps)
     {
         if (p.collected)
             continue;
@@ -1969,8 +2282,8 @@ void Game::render()
         {
             SDL_Rect src{0, 0, heartFrameW, heartFrameH};
             // Base heart
-            SDL_Rect dst{static_cast<int>(std::round(p.x)) - camera.x, static_cast<int>(std::round(p.y)) - camera.y,
-                         map.tileSize, map.tileSize};
+            SDL_Rect dst{static_cast<int>(std::round(p.x)) - camera.x,
+                         static_cast<int>(std::round(p.y)) - camera.y, map.tileSize, map.tileSize};
             // Glow pulse: scaled copy with alpha
             float pulse     = 0.5f + 0.5f * std::sin(p.glowPhase);
             float glowScale = 1.0f + 0.25f * pulse;
@@ -1998,11 +2311,11 @@ void Game::render()
     }
 
     // Render fireballs.
-    for (auto &fb : fireballs)
+    for (auto& fb : fireballs)
         fb.render(renderer, camera.x, camera.y);
 
     // Render explosion effects on top.
-    for (auto &ex : explosions)
+    for (auto& ex : explosions)
         ex.render(renderer, camera.x, camera.y);
 
     // HUD: Render hearts at top-left
@@ -2074,6 +2387,25 @@ void Game::render()
 
     // Render Tab menu (skills and armors)
     menu.render(renderer, camera, gameState);
+
+    // Render letterbox bars during cutscenes or camera transitions
+    if (cutsceneManager_.isLetterboxVisible())
+    {
+        int barHeight = (camera.height / 8) - 6;
+        int alpha     = cutsceneManager_.getLetterboxAlpha();
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+        // Top bar
+        SDL_Rect topBar = {0, 0, camera.width, barHeight};
+        SDL_RenderFillRect(renderer, &topBar);
+
+        // Bottom bar
+        SDL_Rect bottomBar = {0, camera.height - barHeight, camera.width, barHeight};
+        SDL_RenderFillRect(renderer, &bottomBar);
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    }
 
     // Render end scene overlay when in ending stage
     if (endingStage && endSceneTexture)
@@ -2194,10 +2526,10 @@ void Game::clean()
     {
         worldMap.clean();
     }
-    
+
     // Clean up menu resources
     menu.cleanup();
-    
+
     // Destroy textures.
     if (heartTexture)
         SDL_DestroyTexture(heartTexture);

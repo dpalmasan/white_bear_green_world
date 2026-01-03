@@ -69,6 +69,11 @@ assets/
 
 ## Code Conventions
 
+### Important Rules
+- **NEVER modify map JSON files programmatically** - Maps are created/edited in Tiled editor only
+- Map files in `assets/levels/*/map.json` should only be modified by the user
+- If cutscene triggers or entity positions need adjustment, inform user to edit in Tiled
+
 ### Naming
 - **Private member variables**: End with underscore `_` (e.g., `isOpen_`, `armorCursor_`)
 - **Public members**: No underscore (e.g., `running`, `paused`)

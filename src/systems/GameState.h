@@ -50,6 +50,9 @@ public:
     // Key format: "boss_<stage>_<name>" e.g., "boss_snowy-cliffs-boss_snow-robot"
     std::set<std::string> bossesDefeated;
     
+    // Cutscenes seen (to avoid repeating them)
+    bool rivalBearIntroCutsceneSeen = false;
+    
     // Collectibles found per stage
     // Key: stage name, Value: set of collectible IDs (e.g., "heart_1", "heart_2")
     std::unordered_map<std::string, std::set<std::string>> collectiblesPerStage;

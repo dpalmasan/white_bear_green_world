@@ -22,7 +22,10 @@ struct Tile
     bool polarBearSpawn = false;       // Spawn marker for the player
     std::string enemyType;  // Enemy type if this is a spawn tile (e.g., "arachnoid", "robot")
     std::string boss;       // Boss type if this is a boss spawn (e.g., "snow-robot"), empty if none
+    bool flipped = false;   // Whether the entity should be horizontally flipped
     bool endOfArea = false;  // Marks end-of-area trigger tile (transparent, no collision)
+    std::string cutscene;    // Cutscene ID (e.g., "intro", "boss-reveal"), empty if none
+    std::string event;       // Event object (e.g., "robot", "npc"), empty if none
 };
 
 // Represents a layer of tiles
@@ -87,4 +90,7 @@ class TileMap
 
     // Get tiles marked with boss spawns
     std::vector<const Tile*> getBossTiles() const;
+
+    // Get tiles marked as event objects
+    std::vector<const Tile*> getEventTiles() const;
 };

@@ -27,6 +27,7 @@
 #include "screens/WorldMap.h"
 #include "core/Camera.h"
 #include "core/Input.h"
+#include "cutscenes/CutsceneManager.h"
 #include "entities/Arachnoid.h"
 #include "entities/Boss.h"
 #include "entities/Enemy.h"
@@ -34,6 +35,7 @@
 #include "entities/FrenzyWolf.h"
 #include "entities/IdleEnemy.h"
 #include "entities/PolarBear.h"
+#include "entities/RivalBear.h"
 #include "entities/RobotEnemy.h"
 #include "entities/SnowRobotBoss.h"
 
@@ -47,6 +49,9 @@ class Game
     bool running = true;
     // Pause state.
     bool paused = false;
+    
+    // Cutscene management
+    CutsceneManager cutsceneManager_;
     
     // Menu system
     Menu menu;
@@ -107,6 +112,7 @@ class Game
     // Sound effects
     Mix_Chunk* slashSound     = nullptr;
     Mix_Chunk* explosionSound = nullptr;
+    Mix_Chunk* bearGrowlSound = nullptr;
 
     // Shared enemy textures
     SDL_Texture* robotAttackTexture     = nullptr;
@@ -153,6 +159,7 @@ class Game
     // Camera transition for boss intro
     bool cameraTransitioning = false;  // smooth move to lock position
     bool cameraUnlocking     = false;  // smooth unlock after boss death
+    bool postIntroTransition = false;  // transition back to player after intro
     int targetCamX           = 0;
     int targetCamY           = 0;
 
@@ -212,4 +219,7 @@ class Game
 
     // Wind animation timer for wind tiles
     float windAnimationTimer = 0.0f;
+    
+    // Helper methods
+    void registerCutscenes();  // Register all cutscenes for current stage
 };

@@ -106,6 +106,23 @@ bool TileMap::loadFromJSON(const std::string& filename)
                 {
                     tile.boss = attrs["boss"].get<std::string>();
                 }
+                // Check for flipped attribute
+                if (attrs.contains("flipped"))
+                {
+                    tile.flipped = attrs["flipped"];
+                }
+                // Check for cutscene attribute (string ID)
+                if (attrs.contains("cutscene"))
+                {
+                    tile.cutscene = attrs["cutscene"].get<std::string>();
+                    std::cerr << "[TileMap] Loaded cutscene tile at (" << tile.x << "," << tile.y 
+                              << ") cutscene=" << tile.cutscene << "\n";
+                }
+                // Check for event attribute
+                if (attrs.contains("event"))
+                {
+                    tile.event = attrs["event"].get<std::string>();
+                }
             }
 
             layer.tiles.push_back(tile);
@@ -161,9 +178,9 @@ void TileMap::render(SDL_Renderer* renderer, int camX, int camY, float windTime)
         for (const auto& tile : layer.tiles)
         {
             // Skip rendering tiles that are markers (enemy spawns, player spawns, power-ups,
-            // boss spawns, end tiles)
+            // boss spawns, end tiles, cutscene triggers, event objects)
             if (!tile.enemyType.empty() || tile.polarBearSpawn || !tile.powerUp.empty() ||
-                !tile.boss.empty() || tile.endOfArea)
+                !tile.boss.empty() || tile.endOfArea || !tile.cutscene.empty() || !tile.event.empty())
                 continue;
 
             // Calculate source rect from tile ID
@@ -482,6 +499,21 @@ std::vector<const Tile*> TileMap::getBossTiles() const
         for (const auto& tile : layer.tiles)
         {
             if (!tile.boss.empty())
+                out.push_back(&tile);
+        }
+    }
+    return out;
+}
+
+// Get tiles marked as event objects
+std::vector<const Tile*> TileMap::getEventTiles() const
+{
+    std::vector<const Tile*> out;
+    for (const auto& layer : layers)
+    {
+        for (const auto& tile : layer.tiles)
+        {
+            if (!tile.event.empty())
                 out.push_back(&tile);
         }
     }
