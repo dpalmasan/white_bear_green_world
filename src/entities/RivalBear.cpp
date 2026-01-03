@@ -181,10 +181,15 @@ void RivalBear::updateAI(float dt, const TileMap& map, PolarBear& bear)
                 if (slashSound_) {
                     Mix_PlayChannel(-1, slashSound_, 0);
                 }
+                // Position slash with inset like player's slash (6 pixels from edge)
+                // Calculate front point of bear symmetrically
+                const int inset = 6;
+                float frontX = x_ + (facingRight_ ? attackWidth_ - inset : inset);
+                // Position slash relative to front point
                 if (facingRight_) {
-                    slash.x = x_ + attackWidth_;
+                    slash.x = frontX;
                 } else {
-                    slash.x = x_ - slash.width;
+                    slash.x = frontX - slash.width;
                 }
                 slash.y = y_ + attackHeight_ / 2 - slash.height / 2;
             }
@@ -271,10 +276,15 @@ void RivalBear::updateAI(float dt, const TileMap& map, PolarBear& bear)
                     Mix_PlayChannel(-1, slashSound_, 0);
                 }
                 
+                // Position slash with inset like player's slash (6 pixels from edge)
+                // Calculate front point of bear symmetrically
+                const int inset = 6;
+                float frontX = x_ + (facingRight_ ? attackWidth_ - inset : inset);
+                // Position slash relative to front point
                 if (facingRight_) {
-                    slash.x = x_ + attackWidth_;
+                    slash.x = frontX;
                 } else {
-                    slash.x = x_ - slash.width;
+                    slash.x = frontX - slash.width;
                 }
                 slash.y = y_ + attackHeight_ / 2 - slash.height / 2;
             }
@@ -493,8 +503,16 @@ void RivalBear::renderSlash(SDL_Renderer* renderer, const Camera& camera)
         int scaledWidth = static_cast<int>(slash.width * scale);
         int scaledHeight = static_cast<int>(slash.height * scale);
         
+        // When facing left, keep right edge anchored as slash grows
+        int renderX = static_cast<int>(std::round(slash.x));
+        if (!slash.facingRight) {
+            // Right edge of full-size slash is at slash.x + slash.width
+            // Keep this point fixed and grow left
+            renderX = static_cast<int>(std::round(slash.x + slash.width - scaledWidth));
+        }
+        
         SDL_Rect slashDst{
-            static_cast<int>(std::round(slash.x)) - camX,
+            renderX - camX,
             static_cast<int>(std::round(slash.y)) - camY,
             scaledWidth,
             scaledHeight
